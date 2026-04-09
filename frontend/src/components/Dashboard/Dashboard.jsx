@@ -4,6 +4,7 @@ import NavBar from '../Shared/NavBar'
 import ForecastChart from '../Charts/ForecastChart'
 import AnomalyPanel from '../Charts/AnomalyPanel'
 import ScenarioPlayground from '../Charts/ScenarioPlayground'
+import DataExplorer from '../Charts/DataExplorer'
 import InsightCard from '../Shared/InsightCard'
 import './Dashboard.css'
 
@@ -89,10 +90,11 @@ export default function Dashboard({ datasetPayload, selectedModel, onModelChange
 
         {/* Week Selector + Tabs */}
         <div className="flex justify-between items-center" style={{ marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
-          <div className="tabs" style={{ flex: '1', minWidth: '280px' }}>
+          <div className="tabs" style={{ flex: '1', minWidth: '340px' }}>
             <button className={`tab ${activeTab === 'forecast' ? 'active' : ''}`} onClick={() => setActiveTab('forecast')}>📈 Forecast</button>
             <button className={`tab ${activeTab === 'anomalies' ? 'active' : ''}`} onClick={() => setActiveTab('anomalies')}>🚨 Anomalies</button>
             <button className={`tab ${activeTab === 'scenario' ? 'active' : ''}`} onClick={() => setActiveTab('scenario')}>🎰 Scenario</button>
+            <button className={`tab ${activeTab === 'data' ? 'active' : ''}`} onClick={() => setActiveTab('data')}>📊 Raw Data</button>
           </div>
           <div className="flex items-center gap-2" style={{ whiteSpace: 'nowrap' }}>
             <label className="label" style={{ margin: 0 }}>Forecast weeks:</label>
@@ -160,6 +162,14 @@ export default function Dashboard({ datasetPayload, selectedModel, onModelChange
                 data={datasetPayload.data}
                 contextLabel={contextLabel}
                 selectedModel={selectedModel}
+              />
+            )}
+
+            {activeTab === 'data' && (
+              <DataExplorer
+                data={datasetPayload.data}
+                anomalies={forecastData?.anomalies}
+                contextLabel={contextLabel}
               />
             )}
           </div>
