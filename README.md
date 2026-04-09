@@ -2,14 +2,18 @@
 
 <img src="https://img.shields.io/badge/NatWest-Code%20for%20Purpose-6366f1?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCI+PHBhdGggZmlsbD0id2hpdGUiIGQ9Ik0xMiAyTDIgN2wxMCA1IDEwLTV6TTIgMTdsOCA0IDgtNFY3bC04IDQtOC00eiIvPjwvc3ZnPg==" alt="NatWest Badge"/>
 <img src="https://img.shields.io/badge/Theme-AI%20Predictive%20Forecasting-818cf8?style=for-the-badge" alt="Theme"/>
-<img src="https://img.shields.io/badge/Status-Hackathon%20Submission-10b981?style=for-the-badge" alt="Status"/>
+<img src="https://img.shields.io/badge/Status-Live%20Deployed-10b981?style=for-the-badge" alt="Status"/>
+<img src="https://img.shields.io/badge/Frontend-Vercel-000000?style=for-the-badge&logo=vercel" alt="Vercel"/>
+<img src="https://img.shields.io/badge/Backend-Render-46E3B7?style=for-the-badge&logo=render" alt="Render"/>
 
 # 🔮 ForecastIQ — AI Predictive Forecasting
 
 **Transform historical data into trustworthy, actionable forecasts.**  
 Built for the **NatWest Code for Purpose India Hackathon 2026**.
 
-[🚀 Live Demo](#running-locally) · [📐 Architecture](#architecture) · [🧮 Mathematics](#mathematics-reference) · [📦 Setup](#install--run)
+🌐 **[Live App → forecastiq-natwest.vercel.app](https://forecastiq-natwest.vercel.app/)** &nbsp;|&nbsp; 🔌 **[API Docs → forecastiq-natwest.onrender.com/docs](https://forecastiq-natwest.onrender.com/docs)**
+
+[📐 Architecture](#architecture) · [🧮 Mathematics](#mathematics-reference) · [📦 Setup](#install--run) · [☁️ Deployment](#deployment)
 
 </div>
 
@@ -39,7 +43,8 @@ All mathematical computations are performed **locally** using a **Decomposable T
 | ✅ **Short-Term Forecasting** | 1–6 week forecasts with shaded 95% confidence intervals, showing a range (low, likely, high) |
 | ✅ **Anomaly Detection** | Automatically flags historical data points outside the 95% confidence band — highlights spikes vs drops |
 | ✅ **Scenario Playground** | Interactive sliders for growth multiplier & seasonality strength — side-by-side baseline vs scenario comparison chart |
-| ✅ **Multi-LLM Insight Selector** | Switch between **Google Gemini 2.5 Flash** and **Groq (Llama-3.3-70B)** live from the navbar — AI writes the explanation, maths does the calculation |
+| ✅ **📊 Raw Data Explorer** | Full searchable, filterable, paginated data table with anomaly highlights, % deviation, change-from-previous column and one-click CSV export |
+| ✅ **Multi-LLM Insight Selector** | Switch between **Google Gemini 2.0 Flash** and **Groq (Llama-3.3-70B)** live from the navbar — AI writes the explanation, maths does the calculation |
 | ✅ **Key Trend Patterns** | AI highlights trend, seasonality, and peak periods in plain language |
 | ✅ **Zero Hallucination on Numbers** | LLMs only receive verified numerical outputs from the model; they write English, not maths |
 | ✅ **Premium Dark-Mode UI** | Glassmorphism design, responsive, fully interactive Recharts dashboard |
@@ -55,7 +60,7 @@ All mathematical computations are performed **locally** using a **Decomposable T
 | **Backend** | Python 3.11 + FastAPI | Async, OpenAPI docs auto-generated |
 | **Forecasting** | NumPy + scikit-learn + statsmodels | Pure Python — no C++ build required |
 | **Data Generation** | NumPy (Fourier Series) | Realistic synthetic data, zero privacy risk |
-| **AI — Gemini** | `google-generativeai` (Gemini 2.5 Flash) | Fast, free-tier, precise insight generation |
+| **AI — Gemini** | `google-generativeai` (Gemini 2.0 Flash) | Fast, free-tier, precise insight generation |
 | **AI — Groq** | `groq` (Llama-3.3-70B) | Ultra-fast inference, open-source model |
 | **Deployment** | Render (backend) + Vercel (frontend) | Free-tier cloud, CI/CD ready |
 
@@ -333,15 +338,23 @@ VITE_API_URL=http://localhost:8000/api
 
 ## ☁️ Deployment
 
+> **Live deployments:**
+> - 🌐 Frontend: [forecastiq-natwest.vercel.app](https://forecastiq-natwest.vercel.app/)
+> - 🔌 Backend API: [forecastiq-natwest.onrender.com](https://forecastiq-natwest.onrender.com)
+> - 📚 API Docs: [forecastiq-natwest.onrender.com/docs](https://forecastiq-natwest.onrender.com/docs)
+
 ### Backend → Render
 
+This repo includes a `render.yaml` file for zero-config deployment.
+
 1. Create a new **Web Service** on [render.com](https://render.com)
-2. Connect this GitHub repository
-3. Set:
-   - **Root directory:** `backend`
-   - **Build command:** `pip install -r requirements.txt`
-   - **Start command:** `uvicorn src.main:app --host 0.0.0.0 --port $PORT`
-4. Add environment variables: `GEMINI_API_KEY`, `GROQ_API_KEY`
+2. Connect this GitHub repository — Render auto-detects `render.yaml`
+3. Set environment variables in the Render dashboard:
+   - `GEMINI_API_KEY` — from [Google AI Studio](https://aistudio.google.com/apikey)
+   - `GROQ_API_KEY` — from [Groq Console](https://console.groq.com/keys)
+4. Deploy — the start command `uvicorn src.main:app --host 0.0.0.0 --port $PORT` is pre-configured
+
+> ⚠️ **Free tier note:** Render free services spin down after 15 minutes of inactivity. The first request after sleep takes ~30 seconds to wake up. This is expected behaviour.
 
 ### Frontend → Vercel
 
@@ -349,7 +362,11 @@ VITE_API_URL=http://localhost:8000/api
 2. Set:
    - **Root directory:** `frontend`
    - **Framework Preset:** Vite
-3. Add environment variable: `VITE_API_URL=https://your-render-url.onrender.com/api`
+3. Add environment variable:
+   ```
+   VITE_API_URL=https://forecastiq-natwest.onrender.com/api
+   ```
+4. Deploy — Vercel auto-builds with `npm run build`
 
 ---
 
