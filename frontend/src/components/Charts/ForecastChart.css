@@ -1,0 +1,37 @@
+.forecast-chart-card { padding: 24px; }
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.chart-legend-pills {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.legend-pill {
+  font-size: 0.72rem;
+  border: 1px solid;
+  border-radius: 20px;
+  padding: 3px 10px;
+  color: var(--text-muted);
+}
+
+.anomaly-dots-note {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: rgba(239,68,68,0.06);
+  border: 1px solid rgba(239,68,68,0.15);
+  border-radius: var(--radius-sm);
+}
+
+.custom-tooltip .tt-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}

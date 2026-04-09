@@ -1,0 +1,22 @@
+.anomaly-empty {
+  text-align: center;
+  padding: 60px 32px;
+}
+.anomaly-empty h3 { margin: 8px 0; }
+
+.anomaly-table-wrapper { max-height: 400px; overflow-y: auto; }
+
+.anomaly-row { cursor: pointer; transition: background var(--transition); }
+.anomaly-row.selected td { background: rgba(99,102,241,0.1); }
+.anomaly-row:hover td { background: var(--bg-card-hover); }
+
+.anomaly-select-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 200px;
+}
+
+.anomaly-detail { display: flex; flex-direction: column; gap: 0; }
