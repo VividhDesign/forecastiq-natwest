@@ -87,7 +87,7 @@ def _call_gemini(prompt: str) -> str:
 
     import google.generativeai as genai
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-1.5-pro")
+    model = genai.GenerativeModel("gemini-2.5-flash")
     response = model.generate_content(prompt)
     return response.text.strip()
 
@@ -101,7 +101,7 @@ def _call_groq(prompt: str) -> str:
     from groq import Groq
     client = Groq(api_key=api_key)
     response = client.chat.completions.create(
-        model="llama3-70b-8192",
+        model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.4,
         max_tokens=300,
