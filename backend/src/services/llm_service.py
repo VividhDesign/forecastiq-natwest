@@ -1,14 +1,18 @@
 """
 Multi-LLM Insight Service
-Model-agnostic router that translates raw forecast statistics into
-plain English summaries for non-technical users.
+=========================
+A model-agnostic router that takes verified numerical outputs from the
+forecasting engine and translates them into plain-English summaries for
+non-technical business users.
 
 Supported models:
-  - Google Gemini Pro  (via google-generativeai)
-  - Groq / Llama-3     (via groq)
+  - Google Gemini 2.5 Flash  (via google-generativeai)
+  - Groq / Llama-3.3-70B     (via groq)
 
-The LLMs are only used for text translation — all numbers come from
-Prophet's deterministic maths, ensuring zero hallucination on figures.
+Design principle: LLMs here are *translators*, not *calculators*.
+All numbers come from the deterministic forecasting engine — the LLM
+only converts those numbers into readable sentences. This prevents
+hallucinated figures and ensures factual accuracy.
 """
 
 import os

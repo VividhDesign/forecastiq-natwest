@@ -1,8 +1,8 @@
 import './NavBar.css'
 
 const MODEL_OPTIONS = [
-  { value: 'gemini', label: '✨ Google Gemini Pro' },
-  { value: 'groq',   label: '⚡ Groq / Llama-3' },
+  { value: 'gemini', label: '✨ Gemini 2.5 Flash' },
+  { value: 'groq',   label: '⚡ Llama-3.3 (Groq)' },
 ]
 
 export default function NavBar({ contextLabel, contextDesc, selectedModel, onModelChange, onReset }) {

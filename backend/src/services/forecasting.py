@@ -1,22 +1,27 @@
 """
 Forecasting Engine
-Uses a Decomposable Time-Series approach (mirroring Facebook Prophet's methodology)
-implemented with NumPy, Pandas, and statsmodels — no C++ build required.
+==================
+A pure-Python Decomposable Time-Series model that decomposes any metric into
+trend, seasonality, and noise — then generates short-term forecasts with
+statistically rigorous 95% confidence intervals.
 
-Mathematical approach:
+Mathematical decomposition:
   y(t) = g(t) + s(t) + ε
 
-  g(t) : Linear trend via linear regression (OLS)
+  g(t) : Linear trend via Ordinary Least Squares regression
   s(t) : Fourier Series seasonality  Σ [aₙ·cos(2πnt/P) + bₙ·sin(2πnt/P)]
-  CI   : Bootstrap resampling for 95% confidence intervals
-  Anomalies: Points where actual y is outside the 95% CI band
+  CI   : 95% confidence band via bootstrap resampling of in-sample residuals
+  ε    : Gaussian noise (captured in residuals)
+
+Anomaly rule:
+  A historical point is flagged as an anomaly if:
+    y_actual > yhat_upper  →  SPIKE (unexpected surge above the upper band)
+    y_actual < yhat_lower  →  DROP  (unexpected crash below the lower band)
 """
 
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import MinMaxScaler
-from typing import Optional
 
 
 def _add_fourier_features(t: np.ndarray, period: float, order: int = 3) -> np.ndarray:
