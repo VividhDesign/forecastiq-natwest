@@ -5,10 +5,10 @@ import './Onboarding.css'
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 
 const CONTEXTS = [
-  { value: 'ecommerce_sales', label: '🛒 E-commerce Sales', desc: 'Daily revenue from an online store' },
-  { value: 'server_load',     label: '💻 Cloud Server Load', desc: 'Average daily CPU utilization (%)' },
-  { value: 'user_signups',    label: '👥 App User Signups', desc: 'Daily new user registrations' },
-  { value: 'support_tickets', label: '🎫 Support Tickets',  desc: 'Daily incoming customer queries' },
+  { value: 'ecommerce_sales', label: '🛒 E-commerce Sales',   desc: 'Daily revenue data from an online store' },
+  { value: 'server_load',     label: '💻 Cloud Server Load',  desc: 'Average daily CPU utilisation (%)' },
+  { value: 'user_signups',    label: '👥 App User Signups',   desc: 'Daily new user registrations' },
+  { value: 'support_tickets', label: '🎫 Support Tickets',    desc: 'Daily incoming customer queries' },
 ]
 
 const TRENDS = [
@@ -39,7 +39,7 @@ export default function Onboarding({ onDataReady }) {
       })
       onDataReady({ data: res.data.data, context_meta: res.data.context_meta, source: 'sandbox' })
     } catch (e) {
-      setError('Failed to generate data. Is the backend running?')
+      setError('Could not reach the backend. Please try again in a moment.')
     } finally {
       setLoading(false)
     }
@@ -66,20 +66,19 @@ export default function Onboarding({ onDataReady }) {
 
   return (
     <div className="onboarding-page">
-      {/* Background decoration */}
-      <div className="onboarding-bg-orb orb-1" />
-      <div className="onboarding-bg-orb orb-2" />
-
       <div className="onboarding-container fade-in">
+
         {/* Header */}
         <div className="onboarding-header">
           <div className="onboarding-logo">
-            <span className="logo-icon">🔮</span>
+            <span className="logo-icon">📊</span>
             <span className="logo-text gradient-text">ForecastIQ</span>
           </div>
-          <h1>AI Predictive Forecasting</h1>
+          <div className="onboarding-tagline">NatWest · Code for Purpose 2026</div>
+          <h1 className="onboarding-title">Predictive Forecasting Tool</h1>
           <p className="onboarding-subtitle">
-            Forecast future trends · Detect anomalies · Simulate what-if scenarios — all powered by Facebook Prophet + Generative AI
+            Upload your time-series data or generate a realistic dataset to explore short-term
+            forecasts, anomaly detection, and scenario modelling.
           </p>
         </div>
 
@@ -87,11 +86,17 @@ export default function Onboarding({ onDataReady }) {
         <div className="glass-card onboarding-card">
           {/* Tabs */}
           <div className="tabs">
-            <button className={`tab ${tab === 'sandbox' ? 'active' : ''}`} onClick={() => setTab('sandbox')}>
-              ✨ Generate Sandbox Data
+            <button
+              className={`tab ${tab === 'sandbox' ? 'active' : ''}`}
+              onClick={() => setTab('sandbox')}
+            >
+              Generate Sample Data
             </button>
-            <button className={`tab ${tab === 'upload' ? 'active' : ''}`} onClick={() => setTab('upload')}>
-              📂 Upload Your CSV
+            <button
+              className={`tab ${tab === 'upload' ? 'active' : ''}`}
+              onClick={() => setTab('upload')}
+            >
+              Upload CSV
             </button>
           </div>
 
@@ -99,8 +104,9 @@ export default function Onboarding({ onDataReady }) {
 
           {tab === 'sandbox' ? (
             <div className="sandbox-form fade-in">
-              <p style={{ marginBottom: '20px', fontSize: '0.9rem' }}>
-                Generate a realistic synthetic dataset on-the-fly. No real data needed — perfect for exploring the platform.
+              <p style={{ marginBottom: '20px', fontSize: '0.88rem' }}>
+                Generate a realistic synthetic dataset on-the-fly. No real data needed — ideal for
+                exploring the platform's forecasting and anomaly detection capabilities.
               </p>
 
               {/* Context Selection */}
@@ -140,26 +146,40 @@ export default function Onboarding({ onDataReady }) {
               <div className="form-group">
                 <div className="toggle-wrapper">
                   <label className="toggle">
-                    <input type="checkbox" checked={injectAnomalies} onChange={e => setInjectAnomalies(e.target.checked)} />
+                    <input
+                      type="checkbox"
+                      checked={injectAnomalies}
+                      onChange={e => setInjectAnomalies(e.target.checked)}
+                    />
                     <span className="toggle-slider" />
                   </label>
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>Inject Anomalies</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Adds realistic spikes & drops for anomaly detection demo</div>
+                    <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>Inject Anomalies</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      Adds realistic spikes & drops for anomaly detection demo
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {error && <div className="error-msg">⚠️ {error}</div>}
+              {error && <div className="error-msg" style={{ marginBottom: '12px' }}>⚠️ {error}</div>}
 
-              <button className="btn btn-primary generate-btn" onClick={handleGenerate} disabled={loading}>
-                {loading ? <><span className="spinner" />Generating Forecast Data...</> : <>🚀 Generate & Launch Dashboard</>}
+              <button
+                className="btn btn-primary generate-btn"
+                onClick={handleGenerate}
+                disabled={loading}
+              >
+                {loading
+                  ? <><span className="spinner" />Generating dataset...</>
+                  : <>Launch Dashboard →</>
+                }
               </button>
             </div>
           ) : (
             <div className="upload-form fade-in">
-              <p style={{ marginBottom: '20px', fontSize: '0.9rem' }}>
-                Upload a CSV file with two columns: <strong>ds</strong> (date, YYYY-MM-DD) and <strong>y</strong> (numeric value).
+              <p style={{ marginBottom: '20px', fontSize: '0.88rem' }}>
+                Upload a CSV file with two columns: <code>ds</code> (date, YYYY-MM-DD) and{' '}
+                <code>y</code> (numeric value). Minimum 30 rows required.
               </p>
 
               <div
@@ -169,30 +189,50 @@ export default function Onboarding({ onDataReady }) {
                 onDragLeave={() => setDragOver(false)}
                 onDrop={e => { e.preventDefault(); setDragOver(false); handleFileUpload(e.dataTransfer.files[0]) }}
               >
-                <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>📄</div>
-                <div style={{ fontWeight: 600, marginBottom: '6px' }}>Drop your CSV here</div>
-                <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>or click to browse</div>
-                <input ref={fileRef} type="file" accept=".csv" hidden onChange={e => handleFileUpload(e.target.files[0])} />
+                <div style={{ fontSize: '2rem', marginBottom: '10px' }}>📄</div>
+                <div style={{ fontWeight: 600, marginBottom: '5px', fontSize: '0.95rem' }}>
+                  Drop your CSV here
+                </div>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>or click to browse</div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept=".csv"
+                  hidden
+                  onChange={e => handleFileUpload(e.target.files[0])}
+                />
               </div>
 
-              <div className="upload-hint glass-card" style={{ marginTop: '16px', padding: '14px 18px' }}>
-                <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
-                  <strong>Required format:</strong> CSV with columns <code>ds</code> (date) and <code>y</code> (numeric). Minimum 30 rows.
+              <div className="glass-card" style={{ marginTop: '14px', padding: '12px 16px' }}>
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                  <strong>Required format:</strong> Two columns — <code>ds</code> (date) and{' '}
+                  <code>y</code> (numeric). Minimum 30 rows.
                 </div>
               </div>
 
               {error && <div className="error-msg" style={{ marginTop: '12px' }}>⚠️ {error}</div>}
-              {loading && <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}><span className="spinner" /></div>}
+              {loading && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+                  <span className="spinner" />
+                </div>
+              )}
             </div>
           )}
         </div>
 
         {/* Feature Pills */}
         <div className="feature-pills">
-          {['📐 Decomposable Time-Series (Prophet)', '🔍 Bayesian Confidence Intervals', '🚨 Anomaly Detection', '🎰 Scenario Playground', '🤖 Multi-LLM Insights'].map(f => (
+          {[
+            '📐 Time-Series Decomposition',
+            '📊 Bootstrap Confidence Intervals',
+            '🚨 Anomaly Detection',
+            '🎰 Scenario Analysis',
+            '🤖 AI-Generated Insights',
+          ].map(f => (
             <span key={f} className="feature-pill">{f}</span>
           ))}
         </div>
+
       </div>
     </div>
   )

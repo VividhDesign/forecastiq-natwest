@@ -10,18 +10,22 @@ export default function InsightCard({ icon, title, text, model, loading }) {
           <span className="insight-icon-lg">{icon}</span>
           <h3>{title}</h3>
         </div>
-        <span className="badge badge-blue" style={{ fontSize: '0.7rem' }}>
-          {model === 'gemini' ? '✨' : '⚡'} {modelLabel}
+        <span className="badge badge-amber">
+          {modelLabel}
         </span>
       </div>
-      <div className="divider" style={{ margin: '14px 0' }} />
+      <div className="divider" style={{ margin: '12px 0' }} />
       {loading ? (
         <div className="flex items-center gap-3">
           <div className="spinner" />
-          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>AI is generating insight...</span>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            Generating insight...
+          </span>
         </div>
       ) : (
-        <p className="insight-body">{text || 'No insight available. Check your API key configuration.'}</p>
+        <p className="insight-body">
+          {text || 'No insight available. Check your API key configuration.'}
+        </p>
       )}
     </div>
   )

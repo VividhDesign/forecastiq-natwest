@@ -113,7 +113,7 @@ export default function Dashboard({ datasetPayload, selectedModel, onModelChange
         {loading ? (
           <div className="loading-state">
             <div className="spinner" style={{ width: '40px', height: '40px', borderWidth: '4px' }} />
-            <p>Running Prophet model · Generating AI insights...</p>
+            <p>Running forecast model, this may take a moment...</p>
           </div>
         ) : error ? (
           <div className="glass-card" style={{ padding: '32px', textAlign: 'center' }}>
