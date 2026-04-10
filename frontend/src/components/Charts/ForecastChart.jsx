@@ -68,9 +68,9 @@ export default function ForecastChart({ historicalFit, forecast, anomalies, cont
           </p>
         </div>
         <div className="chart-legend-pills">
-          <span className="legend-pill" style={{ borderColor: '#818cf8' }}>— Historical</span>
-          <span className="legend-pill" style={{ borderColor: '#38bdf8', borderStyle: 'dashed' }}>-- Forecast</span>
-          <span className="legend-pill" style={{ borderColor: '#ef4444' }}>● Anomaly</span>
+          <span className="legend-pill" style={{ borderColor: '#f59e0b' }}>— Historical</span>
+          <span className="legend-pill" style={{ borderColor: '#34d399', borderStyle: 'dashed' }}>-- Forecast</span>
+          <span className="legend-pill" style={{ borderColor: '#f87171' }}>● Anomaly</span>
         </div>
       </div>
 
@@ -80,12 +80,12 @@ export default function ForecastChart({ historicalFit, forecast, anomalies, cont
         <ComposedChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
           <defs>
             <linearGradient id="confGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#6366f1" stopOpacity={0.18} />
-              <stop offset="95%" stopColor="#6366f1" stopOpacity={0.02} />
+              <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.15} />
+              <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.02} />
             </linearGradient>
             <linearGradient id="forecastGradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.15} />
-              <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.02} />
+              <stop offset="5%" stopColor="#34d399" stopOpacity={0.12} />
+              <stop offset="95%" stopColor="#34d399" stopOpacity={0.02} />
             </linearGradient>
           </defs>
 
@@ -137,25 +137,25 @@ export default function ForecastChart({ historicalFit, forecast, anomalies, cont
           <Line
             type="monotone"
             dataKey="actual"
-            stroke="#818cf8"
+            stroke="#f59e0b"
             strokeWidth={2}
             dot={false}
             name="Actual"
             connectNulls={false}
-            activeDot={{ r: 4, fill: '#818cf8' }}
+            activeDot={{ r: 4, fill: '#f59e0b' }}
           />
 
           {/* Forecast line — dashed */}
           <Line
             type="monotone"
             dataKey="predicted"
-            stroke="#38bdf8"
+            stroke="#34d399"
             strokeWidth={2.5}
             strokeDasharray="6 3"
             dot={false}
             name="Forecast"
             connectNulls={false}
-            activeDot={{ r: 4, fill: '#38bdf8' }}
+            activeDot={{ r: 4, fill: '#34d399' }}
           />
 
           {/* Vertical Reference Line: start of forecast */}

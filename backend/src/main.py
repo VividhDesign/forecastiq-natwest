@@ -1,6 +1,6 @@
 """
-AI Predictive Forecasting — NatWest Code for Purpose Hackathon
-FastAPI Application Entry Point
+ForecastIQ — Predictive Forecasting API
+NatWest Code for Purpose Hackathon 2026
 """
 
 from fastapi import FastAPI
@@ -8,8 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.api.routes import router
 
 app = FastAPI(
-    title="AI Predictive Forecasting API",
-    description="Forecast future trends, detect anomalies, and run scenario planning using Facebook Prophet with multi-LLM insight generation.",
+    title="ForecastIQ API",
+    description="Short-term time-series forecasting with anomaly detection and AI-generated insight summaries.",
     version="1.0.0",
 )
 
@@ -28,4 +28,4 @@ app.include_router(router, prefix="/api")
 @app.get("/", tags=["Health"])
 def health_check():
     """Health check endpoint."""
-    return {"status": "ok", "message": "AI Predictive Forecasting API is running."}
+    return {"status": "ok", "service": "ForecastIQ API"}
