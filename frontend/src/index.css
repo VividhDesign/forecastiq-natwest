@@ -55,6 +55,77 @@
   --transition: 0.18s ease;
 }
 
+/* ── Light Mode Overrides ── */
+[data-theme="light"] {
+  --bg-base:       #f7f6f2;
+  --bg-surface:    #ffffff;
+  --bg-elevated:   #f0eeea;
+  --bg-card:       #ffffff;
+  --bg-card-hover: #faf9f6;
+
+  --border:        #e2ddd5;
+  --border-strong: #cdc8bf;
+  --border-focus:  #d97706;
+
+  --text-primary:   #1a1814;
+  --text-secondary: #5c5650;
+  --text-muted:     #9b978f;
+
+  --shadow-sm:   0 1px 4px rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.1);
+  --shadow-lift: 0 8px 32px rgba(0, 0, 0, 0.14);
+}
+
+[data-theme="light"] body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .navbar {
+  background: var(--bg-surface);
+  border-bottom-color: var(--border);
+  box-shadow: 0 1px 0 var(--border);
+}
+
+[data-theme="light"] .glass-card {
+  box-shadow: var(--shadow-sm);
+}
+
+[data-theme="light"] .stat-card {
+  box-shadow: var(--shadow-sm);
+}
+
+[data-theme="light"] th {
+  background: var(--bg-elevated);
+}
+
+[data-theme="light"] .custom-tooltip {
+  box-shadow: var(--shadow-card);
+}
+
+/* ── Theme Toggle Button ── */
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition);
+  font-size: 1rem;
+  flex-shrink: 0;
+  font-family: inherit;
+}
+.theme-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
 /* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }

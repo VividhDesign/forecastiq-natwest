@@ -17,7 +17,7 @@ const TRENDS = [
   { value: 'declining',         label: '📉 Declining' },
 ]
 
-export default function Onboarding({ onDataReady }) {
+export default function Onboarding({ onDataReady, theme, onThemeToggle }) {
   const [tab, setTab] = useState('sandbox') // 'sandbox' | 'upload'
   const [context, setContext] = useState('ecommerce_sales')
   const [trend, setTrend] = useState('aggressive_growth')
@@ -66,6 +66,17 @@ export default function Onboarding({ onDataReady }) {
 
   return (
     <div className="onboarding-page">
+      {/* Floating theme toggle — top right */}
+      <button
+        className="theme-toggle"
+        onClick={onThemeToggle}
+        title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        aria-label="Toggle theme"
+        style={{ position: 'fixed', top: '16px', right: '16px', zIndex: 10 }}
+      >
+        {theme === 'dark' ? '☀' : '☽'}
+      </button>
+
       <div className="onboarding-container fade-in">
 
         {/* Header */}

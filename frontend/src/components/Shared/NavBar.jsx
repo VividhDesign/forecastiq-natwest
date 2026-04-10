@@ -5,7 +5,7 @@ const MODEL_OPTIONS = [
   { value: 'groq',   label: '⚡ Llama-3.3 (Groq)' },
 ]
 
-export default function NavBar({ contextLabel, contextDesc, selectedModel, onModelChange, onReset }) {
+export default function NavBar({ contextLabel, contextDesc, selectedModel, onModelChange, onReset, theme, onThemeToggle }) {
   return (
     <nav className="navbar">
       <div className="navbar-inner">
@@ -39,6 +39,16 @@ export default function NavBar({ contextLabel, contextDesc, selectedModel, onMod
               ))}
             </div>
           </div>
+
+          {/* Theme Toggle */}
+          <button
+            className="theme-toggle"
+            onClick={onThemeToggle}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? '☀' : '☽'}
+          </button>
 
           {/* Reset */}
           <button

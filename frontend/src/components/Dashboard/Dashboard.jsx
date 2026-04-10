@@ -10,7 +10,7 @@ import './Dashboard.css'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 
-export default function Dashboard({ datasetPayload, selectedModel, onModelChange, onReset }) {
+export default function Dashboard({ datasetPayload, selectedModel, onModelChange, onReset, theme, onThemeToggle }) {
   const [activeTab, setActiveTab] = useState('forecast')
   const [forecastData, setForecastData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -51,6 +51,8 @@ export default function Dashboard({ datasetPayload, selectedModel, onModelChange
         selectedModel={selectedModel}
         onModelChange={onModelChange}
         onReset={onReset}
+        theme={theme}
+        onThemeToggle={onThemeToggle}
       />
 
       <div className="dashboard-content">

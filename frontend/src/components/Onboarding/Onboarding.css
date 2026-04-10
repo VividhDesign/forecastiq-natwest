@@ -21,6 +21,10 @@
   pointer-events: none;
 }
 
+[data-theme="light"] .onboarding-page::before {
+  opacity: 0.6;
+}
+
 /* Accent corner glow — just one, not two orbs */
 .onboarding-page::after {
   content: '';
