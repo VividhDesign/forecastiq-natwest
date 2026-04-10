@@ -11,7 +11,7 @@ import './index.css'
 function App() {
   const [appState, setAppState] = useState('onboarding') // 'onboarding' | 'dashboard'
   const [datasetPayload, setDatasetPayload] = useState(null)
-  const [selectedModel, setSelectedModel] = useState('gemini')
+  const [selectedModel, setSelectedModel] = useState('groq')
 
   // Theme: persisted in localStorage, defaults to 'dark'
   const [theme, setTheme] = useState(() => {

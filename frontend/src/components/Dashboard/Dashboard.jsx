@@ -6,6 +6,7 @@ import AnomalyPanel from '../Charts/AnomalyPanel'
 import ScenarioPlayground from '../Charts/ScenarioPlayground'
 import DataExplorer from '../Charts/DataExplorer'
 import InsightCard from '../Shared/InsightCard'
+import ChatPanel from '../Charts/ChatPanel'
 import './Dashboard.css'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
@@ -96,6 +97,7 @@ export default function Dashboard({ datasetPayload, selectedModel, onModelChange
             <button className={`tab ${activeTab === 'forecast' ? 'active' : ''}`} onClick={() => setActiveTab('forecast')}>📈 Forecast</button>
             <button className={`tab ${activeTab === 'anomalies' ? 'active' : ''}`} onClick={() => setActiveTab('anomalies')}>🚨 Anomalies</button>
             <button className={`tab ${activeTab === 'scenario' ? 'active' : ''}`} onClick={() => setActiveTab('scenario')}>🎰 Scenario</button>
+            <button className={`tab ${activeTab === 'ask' ? 'active' : ''}`} onClick={() => setActiveTab('ask')}>💬 Ask</button>
             <button className={`tab ${activeTab === 'data' ? 'active' : ''}`} onClick={() => setActiveTab('data')}>📊 Raw Data</button>
           </div>
           <div className="flex items-center gap-2" style={{ whiteSpace: 'nowrap' }}>
@@ -185,6 +187,14 @@ export default function Dashboard({ datasetPayload, selectedModel, onModelChange
             {activeTab === 'scenario' && (
               <ScenarioPlayground
                 data={datasetPayload.data}
+                contextLabel={contextLabel}
+                selectedModel={selectedModel}
+              />
+            )}
+
+            {activeTab === 'ask' && forecastData && (
+              <ChatPanel
+                summaryStats={forecastData.summary_stats}
                 contextLabel={contextLabel}
                 selectedModel={selectedModel}
               />

@@ -114,65 +114,70 @@ def _call_groq(prompt: str) -> str:
     return response.choices[0].message.content.strip()
 
 
-def generate_forecast_insight(stats: dict, model_choice: ModelChoice = "gemini") -> str:
+def _call_with_fallback(prompt: str, model_choice: ModelChoice) -> str:
     """
-    Generate a plain-English forecast summary using the chosen LLM.
-
-    Args:
-        stats: Summary statistics from forecasting.py (summary_stats).
-        model_choice: 'gemini' or 'groq'.
-
-    Returns:
-        A 3-sentence business-friendly forecast summary string.
+    Call the selected LLM. If Gemini returns a quota/rate-limit error (429),
+    automatically fall back to Groq so demos never fail.
     """
-    prompt = _build_forecast_prompt(stats)
-    if model_choice == "gemini":
-        return _call_gemini(prompt)
-    elif model_choice == "groq":
+    if model_choice == "groq":
         return _call_groq(prompt)
-    else:
-        raise ValueError(f"Unsupported model_choice: {model_choice}")
+
+    try:
+        return _call_gemini(prompt)
+    except Exception as e:
+        err_str = str(e)
+        if "429" in err_str or "quota" in err_str.lower() or "RESOURCE_EXHAUSTED" in err_str:
+            # Silently fall back to Groq on quota exhaustion
+            return "[Auto-switched to Groq — Gemini quota reached] " + _call_groq(prompt)
+        raise
+
+
+def generate_forecast_insight(stats: dict, model_choice: ModelChoice = "gemini") -> str:
+    prompt = _build_forecast_prompt(stats)
+    return _call_with_fallback(prompt, model_choice)
 
 
 def generate_anomaly_insight(anomaly: dict, context_label: str, model_choice: ModelChoice = "gemini") -> str:
-    """
-    Generate a plain-English explanation for a single anomaly.
-
-    Args:
-        anomaly: Anomaly record from forecasting.py.
-        context_label: Human-readable dataset name.
-        model_choice: 'gemini' or 'groq'.
-
-    Returns:
-        A 2-sentence anomaly explanation string.
-    """
     prompt = _build_anomaly_prompt(anomaly, context_label)
-    if model_choice == "gemini":
-        return _call_gemini(prompt)
-    elif model_choice == "groq":
-        return _call_groq(prompt)
-    else:
-        raise ValueError(f"Unsupported model_choice: {model_choice}")
+    return _call_with_fallback(prompt, model_choice)
 
 
 def generate_scenario_insight(
     baseline_stats: dict, scenario_stats: dict, model_choice: ModelChoice = "gemini"
 ) -> str:
-    """
-    Generate a plain-English comparison for baseline vs scenario.
-
-    Args:
-        baseline_stats: Summary stats from the original data forecast.
-        scenario_stats: Summary stats from the modified scenario forecast.
-        model_choice: 'gemini' or 'groq'.
-
-    Returns:
-        A 2-sentence scenario comparison string.
-    """
     prompt = _build_scenario_prompt(baseline_stats, scenario_stats)
-    if model_choice == "gemini":
-        return _call_gemini(prompt)
-    elif model_choice == "groq":
-        return _call_groq(prompt)
-    else:
-        raise ValueError(f"Unsupported model_choice: {model_choice}")
+    return _call_with_fallback(prompt, model_choice)
+
+
+def _build_chat_prompt(question: str, stats: dict, anomaly_count: int, context_label: str) -> str:
+    """Build a grounded Q&A prompt — LLM answers from verified data only."""
+    return f"""You are a data analyst assistant for {context_label} forecasting data.
+Answer the user's question using ONLY the facts provided below. Do not invent numbers.
+
+Verified Data Context:
+- Current value: {stats.get('current_value')}
+- Forecasted end value ({stats.get('forecast_weeks')} weeks): {stats.get('forecast_end_value')}
+- 95% confidence range: {stats.get('forecast_end_lower')} to {stats.get('forecast_end_upper')}
+- Projected growth: {stats.get('growth_pct_over_period')}%
+- Peak expected on: {stats.get('peak_predicted_date')}
+- Anomalies in history: {anomaly_count} total ({stats.get('anomaly_spike_count')} spikes, {stats.get('anomaly_drop_count')} drops)
+- Trend direction over history: {stats.get('trend_slope_pct')}% overall change
+- Seasonal amplitude: {stats.get('seasonal_amplitude')}
+- Naive baseline end: {stats.get('naive_forecast_end')}
+- Model vs naive: {stats.get('model_vs_naive_pct')}%
+
+User question: {question}
+
+Answer in 2-3 clear sentences. If the question cannot be answered from the data above, say so honestly."""
+
+
+def generate_chat_insight(
+    question: str,
+    stats: dict,
+    anomaly_count: int,
+    context_label: str,
+    model_choice: ModelChoice = "groq",
+) -> str:
+    """Answer a free-form user question grounded in the verified forecast data."""
+    prompt = _build_chat_prompt(question, stats, anomaly_count, context_label)
+    return _call_with_fallback(prompt, model_choice)

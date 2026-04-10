@@ -15,6 +15,7 @@ from src.services.llm_service import (
     generate_forecast_insight,
     generate_anomaly_insight,
     generate_scenario_insight,
+    generate_chat_insight,
 )
 
 router = APIRouter()
@@ -51,6 +52,15 @@ class AnomalyInsightRequest(BaseModel):
     anomaly: dict
     context_label: str
     model_choice: Literal["gemini", "groq"] = "gemini"
+
+
+class ChatRequest(BaseModel):
+    model_config = {"protected_namespaces": ()}
+    question: str
+    summary_stats: dict
+    anomaly_count: int = 0
+    context_label: str = "Metric"
+    model_choice: Literal["gemini", "groq"] = "groq"
 
 
 # ─── Endpoints ───────────────────────────────────────────────────────────────
@@ -176,3 +186,23 @@ def scenario(req: ScenarioRequest):
         result["scenario_insight"] = f"[AI insight unavailable: {str(e)}]"
 
     return result
+
+
+@router.post("/chat", tags=["Forecasting"])
+def chat(req: ChatRequest):
+    """
+    Free-form Q&A grounded in verified forecast data.
+    Users can ask any question about their data and the AI answers
+    using only the mathematically verified summary stats.
+    """
+    try:
+        answer = generate_chat_insight(
+            question=req.question,
+            stats=req.summary_stats,
+            anomaly_count=req.anomaly_count,
+            context_label=req.context_label,
+            model_choice=req.model_choice,
+        )
+        return {"answer": answer}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
