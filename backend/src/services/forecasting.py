@@ -188,12 +188,12 @@ def run_forecast(
     yhat_future = model.predict(X_future)
     yhat_future = np.clip(yhat_future, 0, None)
 
-    # For future CI, use wider intervals (uncertainty grows with time)
-    # Scale residual std by sqrt(steps) — standard statistical convention
+    # For future CI, uncertainty grows with absolute number of steps ahead.
+    # Using sqrt(step) ensures 1-week and 6-week forecasts are meaningfully different.
     residual_std = np.std(residuals)
-    horizon_scale = np.sqrt(np.arange(1, forecast_days + 1) / forecast_days)
-    lower_future = yhat_future - 1.96 * residual_std * (1 + horizon_scale)
-    upper_future = yhat_future + 1.96 * residual_std * (1 + horizon_scale)
+    horizon_scale = np.sqrt(np.arange(1, forecast_days + 1))  # absolute steps, not normalized
+    lower_future = yhat_future - 1.96 * residual_std * (1 + horizon_scale / np.sqrt(forecast_days))
+    upper_future = yhat_future + 1.96 * residual_std * (1 + horizon_scale / np.sqrt(forecast_days))
     lower_future = np.clip(lower_future, 0, None)
 
     # Build future date list

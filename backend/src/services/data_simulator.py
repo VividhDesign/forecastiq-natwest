@@ -59,7 +59,7 @@ def _fourier_seasonality(t: np.ndarray, period: float, order: int = 3) -> np.nda
     Returns:
         Seasonal component array of the same shape as t.
     """
-    np.random.seed(42)  # Reproducible but realistic coefficients
+    # No fixed seed — each call generates unique coefficients for realistic variation
     seasonal = np.zeros_like(t, dtype=float)
     for n in range(1, order + 1):
         a_n = np.random.normal(0, 5)
@@ -105,8 +105,7 @@ def generate_synthetic_data(
     # Yearly pattern (e.g., holiday spikes)
     yearly_seasonality = _fourier_seasonality(t, period=365.25, order=5) * 2
 
-    # --- Noise: Gaussian random ---
-    np.random.seed(99)
+    # --- Noise: Gaussian random (no seed = unique each time) ---
     noise = np.random.normal(0, config["base"] * 0.03, days)
 
     # Combine all components: y(t) = g(t) + s(t) + h(t) + ε
@@ -118,7 +117,7 @@ def generate_synthetic_data(
     # --- Anomaly Injection ---
     injected_anomaly_indices = []
     if inject_anomalies:
-        np.random.seed(7)
+        # No fixed seed — anomaly positions vary each simulation run
         # Inject 4 anomalies: 2 spikes, 2 drops
         spike_indices = np.random.choice(range(60, days - 60), size=2, replace=False)
         drop_indices = np.random.choice(range(60, days - 60), size=2, replace=False)
