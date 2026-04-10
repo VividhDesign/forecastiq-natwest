@@ -1,7 +1,7 @@
 import './NavBar.css'
 
 const MODEL_OPTIONS = [
-  { value: 'gemini', label: '✨ Gemini 2.5 Flash' },
+  { value: 'gemini', label: '✨ Gemini 2.0 Flash' },
   { value: 'groq',   label: '⚡ Llama-3.3 (Groq)' },
 ]
 

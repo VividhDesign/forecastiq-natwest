@@ -11,6 +11,9 @@ build/
 # Environment
 .env
 *.env
+# Allow non-secret environment files needed by CI/CD
+!frontend/.env.production
+!backend/.python-version
 
 # Node
 node_modules/

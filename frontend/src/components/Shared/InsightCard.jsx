@@ -1,7 +1,7 @@
 import './InsightCard.css'
 
 export default function InsightCard({ icon, title, text, model, loading }) {
-  const modelLabel = model === 'gemini' ? 'Gemini 2.5 Flash' : 'Llama-3.3 (Groq)'
+  const modelLabel = model === 'gemini' ? 'Gemini 2.0 Flash' : 'Llama-3.3 (Groq)'
 
   return (
     <div className="insight-card-wrapper glass-card">
