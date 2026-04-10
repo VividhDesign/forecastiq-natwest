@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import {
-  ComposedChart, Area, Line, Scatter, XAxis, YAxis,
-  CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine,
+  ComposedChart, Area, Line, XAxis, YAxis,
+  CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts'
 import './ForecastChart.css'
 
@@ -20,6 +21,8 @@ const CustomTooltip = ({ active, payload, label }) => {
 }
 
 export default function ForecastChart({ historicalFit, forecast, anomalies, contextLabel, naiveBaseline }) {
+  const [zoomForecast, setZoomForecast] = useState(false)
+
   // Merge historical + forecast into one dataset for the chart
   const historicalPoints = (historicalFit || []).map(d => ({
     ds: d.ds,
@@ -40,9 +43,14 @@ export default function ForecastChart({ historicalFit, forecast, anomalies, cont
     isForecast: true,
   }))
 
-  // Thin the historical data for performance (show every 3rd point)
+  // Full view: thin history every 3rd point for performance
   const thinnedHistory = historicalPoints.filter((_, i) => i % 3 === 0)
-  const chartData = [...thinnedHistory, ...forecastPoints]
+  // Zoom view: last 60 days of history + full forecast (clearly shows 1wk vs 6wk)
+  const last60History = historicalPoints.slice(-60)
+
+  const chartData = zoomForecast
+    ? [...last60History, ...forecastPoints]
+    : [...thinnedHistory, ...forecastPoints]
 
   // Format anomaly data for Scatter overlay
   const anomalyPoints = (anomalies || []).map(a => ({
@@ -59,20 +67,35 @@ export default function ForecastChart({ historicalFit, forecast, anomalies, cont
   const tickInterval = Math.max(1, Math.floor(chartData.length / 12))
   const ticks = chartData.filter((_, i) => i % tickInterval === 0).map(d => d.ds)
 
+  const forecastWeeks = forecast?.length ? Math.round(forecast.length / 7) : 0
+
   return (
     <div className="glass-card forecast-chart-card">
       <div className="chart-header">
         <div>
-          <h3>{contextLabel} — Historical Fit & {forecast?.length ? `${Math.round(forecast.length / 7)}-Week` : ''} Forecast</h3>
+          <h3>{contextLabel} — Historical Fit & {forecastWeeks > 0 ? `${forecastWeeks}-Week` : ''} Forecast</h3>
           <p style={{ fontSize: '0.8rem', marginTop: '4px' }}>
-            Solid line = actual data · Dashed line = forecast · Shaded area = 95% confidence interval · <span style={{ color: '#ef4444' }}>● = anomaly</span>
+            Solid line = actual data · Dashed line = forecast · Shaded area = 95% CI · <span style={{ color: '#ef4444' }}>● = anomaly</span>
           </p>
         </div>
-        <div className="chart-legend-pills">
-          <span className="legend-pill" style={{ borderColor: '#f59e0b' }}>— Historical</span>
-          <span className="legend-pill" style={{ borderColor: '#34d399', borderStyle: 'dashed' }}>-- Forecast</span>
-          <span className="legend-pill" style={{ borderColor: '#94a3b8', borderStyle: 'dotted' }}>··· Naive Baseline</span>
-          <span className="legend-pill" style={{ borderColor: '#f87171' }}>● Anomaly</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          <div className="chart-legend-pills">
+            <span className="legend-pill" style={{ borderColor: '#f59e0b' }}>— Historical</span>
+            <span className="legend-pill" style={{ borderColor: '#34d399', borderStyle: 'dashed' }}>-- Forecast</span>
+            <span className="legend-pill" style={{ borderColor: '#94a3b8', borderStyle: 'dotted' }}>··· Naive</span>
+          </div>
+          <button
+            onClick={() => setZoomForecast(z => !z)}
+            style={{
+              background: zoomForecast ? 'rgba(52,211,153,0.15)' : 'rgba(255,255,255,0.06)',
+              border: `1px solid ${zoomForecast ? '#34d399' : 'rgba(255,255,255,0.12)'}`,
+              color: zoomForecast ? '#34d399' : 'var(--text-secondary)',
+              borderRadius: '8px', padding: '5px 12px', fontSize: '0.78rem',
+              cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.2s',
+            }}
+          >
+            {zoomForecast ? '🔍 Zoomed: Forecast Region' : '🔭 Full History'}
+          </button>
         </div>
       </div>
 
