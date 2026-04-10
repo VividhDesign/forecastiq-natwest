@@ -16,12 +16,9 @@
 
 ## The Problem
 
-Business teams need to plan ahead — for staffing, inventory, budgets, and capacity.
-But most forecasting tools are either too technical (Python notebooks, ARIMA tuning) or too opaque (black-box predictions with no confidence range).
+Business teams need to plan ahead — for staffing, inventory, budgets, and capacity. But most forecasting tools are either too technical (Python notebooks, ARIMA tuning) or too opaque (black-box predictions with no confidence range).
 
-**ForecastIQ** provides a middle ground: a web-based tool that gives non-technical users
-honest short-term forecasts with clear uncertainty ranges, anomaly detection, and what-if
-scenario modelling — all in plain English.
+**ForecastIQ** provides a middle ground: a web-based tool that gives non-technical users honest short-term forecasts with clear uncertainty ranges, anomaly detection, what-if scenario modelling, and a conversational Q&A interface — all in plain English.
 
 ---
 
@@ -29,8 +26,9 @@ scenario modelling — all in plain English.
 
 The core idea is simple: **separate the maths from the language**.
 
-1. A **deterministic forecasting engine** (Python, NumPy, scikit-learn) computes all numbers — trend, seasonality, confidence intervals, anomalies.
+1. A **deterministic forecasting engine** (Python, NumPy, scikit-learn) computes all numbers — trend, seasonality, confidence intervals, anomalies, and a naive baseline for comparison.
 2. A **generative AI layer** (Gemini or Llama-3) receives only those verified numbers and translates them into business-friendly sentences.
+3. A **conversational Q&A tab** lets users ask free-form questions about the data — every answer is grounded in the same verified numbers, never hallucinated.
 
 The AI never invents figures. It only writes English around numbers that have already been calculated and validated. This prevents hallucinated statistics while still giving non-technical users an accessible summary.
 
@@ -79,6 +77,16 @@ CI(step) = ŷ ± 1.96 · σ_residual · (1 + √(step / horizon))
 
 This reflects the intuitive truth that predictions further into the future carry more uncertainty.
 
+### Naive baseline comparison
+
+To avoid over-fitting, every forecast is compared against a **naive baseline**: the 28-day rolling mean (4 complete weeks to eliminate day-of-week bias). This appears as a flat dotted grey line on the chart. The "Pattern Breakdown" card shows the model-vs-naive percentage — proving the model is actually learning patterns beyond a simple average.
+
+```
+ŷ_naive(t) = mean(y[n-28 : n-1])  for all future t
+```
+
+If the model can't meaningfully outperform this trivial baseline, it signals that the data may lack strong trend or seasonality — a useful diagnostic in itself.
+
 ### Anomaly detection
 
 A historical data point is flagged as anomalous if it falls outside the 95% bootstrap confidence band:
@@ -88,7 +96,7 @@ y > upper_band → Spike (unexpected surge)
 y < lower_band → Drop  (unexpected crash)
 ```
 
-Each anomaly records its direction, date, and percentage deviation from the model's expectation.
+Each anomaly records its direction, date, and percentage deviation. The AI generates **3 sentences** for each anomaly: what happened, the likely cause, and a **concrete next step** the team should take.
 
 ---
 
@@ -101,48 +109,44 @@ Each anomaly records its direction, date, and percentage deviation from the mode
 │  ┌──────────┐ ┌──────────┐ ┌─────────────┐ │
 │  │Onboarding│ │Dashboard │ │ AI Model    │ │
 │  │ Sandbox /│ │Forecast /│ │ Selector    │ │
-│  │CSV Upload│ │Anomalies/│ │ Gemini ↔    │ │
-│  └──────────┘ │Scenarios │ │ Groq        │ │
-│               └──────────┘ └─────────────┘ │
+│  │CSV Upload│ │Anomalies/│ │Groq ↔ Gemini│ │
+│  └──────────┘ │Scenarios/│ └─────────────┘ │
+│               │Chat Q&A  │                 │
+│               └──────────┘                 │
 └────────────────────┬────────────────────────┘
                      │ HTTPS (REST API)
 ┌────────────────────▼────────────────────────┐
 │         FastAPI Backend (Render)             │
 │                                             │
-│  POST /api/simulate                         │
-│    → data_simulator.py                      │
-│      Linear trend + Fourier seasonality     │
-│      + Gaussian noise + anomaly injection   │
+│  POST /api/simulate → Synthetic data gen    │
+│  POST /api/upload   → CSV parser            │
+│  POST /api/forecast → Full forecasting      │
+│    ├─ OLS + Fourier + Bootstrap CI          │
+│    ├─ Anomaly detection                     │
+│    ├─ Naive baseline comparison             │
+│    ├─ Pattern decomposition stats           │
+│    └─ LLM insight (auto-fallback)           │
+│  POST /api/anomaly-insight → Per-anomaly AI │
+│  POST /api/scenario → What-if comparison    │
+│    ├─ Growth / seasonality multipliers      │
+│    └─ Remove outliers (winsorization)       │
+│  POST /api/chat → Free-form Q&A             │
+│    └─ Grounded in verified stats only       │
 │                                             │
-│  POST /api/upload                           │
-│    → CSV parser (Pandas)                    │
-│                                             │
-│  POST /api/forecast                         │
-│    → forecasting.py                         │
-│      OLS trend + Fourier seasonality        │
-│      + Bootstrap CI + anomaly detection     │
-│    → llm_service.py (verified stats only)   │
-│                                             │
-│  POST /api/anomaly-insight                  │
-│    → llm_service.py (single anomaly)        │
-│                                             │
-│  POST /api/scenario                         │
-│    → scenario forecast (baseline vs what-if)│
-│    → llm_service.py (comparison summary)    │
-│                                             │
-│  LLM Router (model-agnostic):               │
+│  LLM Router (model-agnostic + auto-fallback)│
+│    "groq"   → Llama-3.3-70B (default)      │
 │    "gemini" → Gemini 2.0 Flash              │
-│    "groq"   → Llama-3.3-70B via Groq       │
+│    on 429/quota → auto-fallback to Groq     │
 └─────────────────────────────────────────────┘
 ```
 
-### Key design decision
+### Key design decisions
 
-The LLM receives a **fully numerical prompt** — every figure in the prompt comes from the deterministic engine. The LLM's only job is to convert those numbers into readable sentences. This means:
+**1. LLMs as translators, not calculators.** The LLM receives a fully numerical prompt — every figure comes from the deterministic engine. The LLM's only job is to convert those numbers into readable sentences. Switching between Gemini and Llama-3 changes only the writing style, not the data.
 
-- Numbers are always correct (computed, never generated)
-- Switching between Gemini and Llama-3 changes only the writing style, not the data
-- The system remains trustworthy even if the LLM occasionally misinterprets a figure
+**2. Auto-fallback on quota exhaustion.** If Gemini's free-tier quota is exceeded (429 error), the system silently retries the same prompt with Groq. Demos never fail — even when API limits are reached mid-presentation.
+
+**3. Grounded Q&A.** The chat feature sends the user's question alongside a complete snapshot of verified summary stats. The LLM is explicitly instructed: *"Answer using ONLY the facts provided. Do not invent numbers."*
 
 ---
 
@@ -153,11 +157,34 @@ The LLM receives a **fully numerical prompt** — every figure in the prompt com
 | **Data Simulator** | Generate realistic synthetic datasets (4 business contexts, 3 trend types, optional anomaly injection) on-the-fly — no real data required |
 | **CSV Upload** | Upload any time-series CSV with `ds` (date) and `y` (numeric) columns |
 | **Short-Term Forecast** | 1–6 week forecasts with shaded 95% confidence intervals |
-| **Anomaly Detection** | Flags historical data points outside the bootstrap CI band, classified as spikes or drops |
-| **Scenario Playground** | Interactive sliders for growth and seasonality multipliers with side-by-side baseline vs scenario comparison |
+| **Naive Baseline** | 28-day rolling mean plotted alongside the forecast — proves the model beats a simple heuristic |
+| **Pattern Breakdown** | Dashboard card showing trend slope %, seasonal amplitude, and model-vs-naive comparison |
+| **Anomaly Detection** | Flags historical data points outside the bootstrap CI band, classified as spikes or drops with AI explanations and actionable next steps |
+| **Scenario Playground** | Interactive sliders for growth and seasonality multipliers, plus a "Remove Outliers" toggle (winsorization) — side-by-side baseline vs scenario |
+| **💬 Ask Tab** | Conversational Q&A grounded in verified data — ask anything about the forecast, trends, or anomalies |
+| **Multi-LLM Insights** | Switch between Gemini 2.0 Flash and Groq (Llama-3.3-70B) live — with auto-fallback on quota |
 | **Raw Data Explorer** | Searchable, sortable table with anomaly highlights, % deviation, and one-click CSV export |
-| **Multi-LLM Insights** | Switch between Gemini 2.0 Flash and Groq (Llama-3.3-70B) live — the AI writes, the maths calculates |
-| **Dark / Light Mode** | Theme toggle with localStorage persistence |
+| **Dark / Light Mode** | Theme toggle with localStorage persistence; light mode default |
+
+---
+
+## How It Maps to the Problem Statement
+
+| Requirement | Our Implementation |
+|---|---|
+| *"Predict likely values for future periods"* | ✅ 1–6 week forecast via OLS + Fourier decomposition |
+| *"Show a range of outcomes (not just a single number)"* | ✅ Shaded 95% confidence interval (bootstrap + horizon-scaled) |
+| *"Compare predictions to a simple baseline to avoid over-fitting"* | ✅ 28-day naive baseline plotted + model-vs-naive % displayed |
+| *"Detect early warning signs such as sudden changes"* | ✅ Anomalies flagged at spikes/drops outside CI band |
+| *"Provide explanations short enough for non-experts"* | ✅ AI-generated 2–3 sentence summaries in plain English |
+| *"Suggest next steps"* | ✅ Each anomaly insight includes a concrete recommended action |
+| *"Highlight key patterns (trend, seasonality)"* | ✅ Pattern Breakdown card: trend slope %, seasonal amplitude |
+| *"Let users test simple scenarios: adjust growth rate"* | ✅ Growth multiplier slider in Scenario Playground |
+| *"Remove recent outliers"* | ✅ Winsorization toggle: clips top/bottom 5% before fitting |
+| *"Apply flat or seasonal patterns"* | ✅ Seasonality strength slider (0.1× to 3.0×) |
+| *"Generate side-by-side comparisons"* | ✅ Baseline vs scenario lines on the same chart |
+| *"Summarize the difference clearly"* | ✅ AI-generated scenario comparison summary |
+| *"Keep the experience lightweight, trustworthy, and fast"* | ✅ Pure Python model, no C++ deps, auto-fallback on AI |
 
 ---
 
@@ -169,10 +196,10 @@ The LLM receives a **fully numerical prompt** — every figure in the prompt com
 | **Charts** | Recharts | Supports shaded confidence bands and interactive tooltips |
 | **Styling** | Vanilla CSS (DM Sans + DM Mono) | Full control, no framework lock-in |
 | **Backend** | Python 3.11, FastAPI | Async, auto-generated OpenAPI docs |
-| **Forecasting** | NumPy, scikit-learn, statsmodels | Pure Python — no C++ compilation required at deploy time |
+| **Forecasting** | NumPy, scikit-learn | Pure Python — no C++ compilation required at deploy time |
 | **Data Generation** | NumPy (Fourier series) | Realistic synthetic data, zero privacy risk |
-| **AI — Gemini** | `google-generativeai` SDK | gemini-2.0-flash: fast, free-tier |
-| **AI — Groq** | `groq` SDK | Llama-3.3-70B at ultra-low latency |
+| **AI — Groq (default)** | `groq` SDK | Llama-3.3-70B at ultra-low latency, no quota limits |
+| **AI — Gemini** | `google-generativeai` SDK | gemini-2.0-flash, with auto-fallback to Groq on 429 |
 | **Deployment** | Render (backend) + Vercel (frontend) | Free-tier, CI/CD from GitHub |
 
 ---
@@ -196,7 +223,7 @@ ForecastIQ/
 │       └── services/
 │           ├── data_simulator.py       # Synthetic data (Fourier + noise)
 │           ├── forecasting.py          # Core model (OLS + Bootstrap CI)
-│           └── llm_service.py          # LLM router (Gemini / Groq)
+│           └── llm_service.py          # LLM router (auto-fallback)
 │   └── tests/
 │       └── test_forecasting.py         # 11 test assertions
 │
@@ -212,10 +239,11 @@ ForecastIQ/
             ├── Onboarding/             # Data input: sandbox or CSV
             ├── Dashboard/              # Main analytics layout
             ├── Charts/
-            │   ├── ForecastChart.jsx    # Recharts ComposedChart + CI band
+            │   ├── ForecastChart.jsx    # Recharts + CI band + naive line
             │   ├── AnomalyPanel.jsx     # Anomaly table + AI explanations
-            │   ├── ScenarioPlayground.jsx # What-if sliders + comparison
-            │   └── DataExplorer.jsx     # Filterable data table + CSV export
+            │   ├── ScenarioPlayground.jsx # What-if + remove outliers
+            │   ├── ChatPanel.jsx        # Free-form Q&A interface
+            │   └── DataExplorer.jsx     # Filterable table + CSV export
             └── Shared/
                 ├── NavBar.jsx           # Model selector + theme toggle
                 └── InsightCard.jsx      # AI-generated insight display
@@ -230,8 +258,8 @@ ForecastIQ/
 - Python 3.11+
 - Node.js 18+
 - At least one free API key:
-  - [Google AI Studio (Gemini)](https://aistudio.google.com/apikey)
-  - [Groq Console (Llama-3)](https://console.groq.com/keys)
+  - [Groq Console (Llama-3)](https://console.groq.com/keys) — **recommended, no daily limits**
+  - [Google AI Studio (Gemini)](https://aistudio.google.com/apikey) — optional, has free-tier quota
 
 ### Backend
 
@@ -247,7 +275,7 @@ source .venv/bin/activate
 
 pip install -r requirements.txt
 cp .env.example .env
-# Edit .env — add your GEMINI_API_KEY and/or GROQ_API_KEY
+# Edit .env — add your GROQ_API_KEY (required) and optionally GEMINI_API_KEY
 
 uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 ```
@@ -282,10 +310,11 @@ App at `http://localhost:5173`
 
 | Tab | What it shows |
 |---|---|
-| **Forecast** | Line chart with 95% confidence band + AI insight card |
-| **Anomalies** | Detected spikes and drops — click any row for an AI explanation |
-| **Scenario** | Growth & seasonality sliders — compare baseline vs what-if |
-| **Raw Data** | Full data table with search, sort, anomaly highlights, and CSV export |
+| **📈 Forecast** | Line chart with 95% CI band, naive baseline (dotted grey), and AI insight. Pattern Breakdown card shows trend slope, seasonal amplitude, model vs naive % |
+| **🚨 Anomalies** | Detected spikes and drops — click any row for a 3-sentence AI explanation with recommended next steps |
+| **🎰 Scenario** | Growth & seasonality sliders + Remove Outliers toggle. Baseline vs scenario comparison + AI summary |
+| **💬 Ask** | Chat Q&A — ask anything about the forecast data. 5 suggested questions for quick demos. All answers grounded in verified stats |
+| **📊 Raw Data** | Full data table with search, sort, anomaly highlights, and CSV export |
 
 Switch AI models from the navbar. Toggle dark/light mode with the ☀/☽ button.
 
@@ -317,8 +346,8 @@ pytest tests/ -v
 ### Backend (`backend/.env`)
 
 ```
-GEMINI_API_KEY=your_key_here
-GROQ_API_KEY=your_key_here
+GROQ_API_KEY=your_key_here      # Required — default model
+GEMINI_API_KEY=your_key_here    # Optional — auto-fallback if quota exceeded
 ```
 
 ### Frontend (`frontend/.env`)
@@ -343,7 +372,7 @@ VITE_API_URL=http://localhost:8000/api
 This repo includes `render.yaml` and `backend/.python-version` for zero-config deployment.
 
 1. Create a Web Service on [render.com](https://render.com) and connect this repository
-2. Set `GEMINI_API_KEY` and `GROQ_API_KEY` in the Render environment
+2. Set `GROQ_API_KEY` and `GEMINI_API_KEY` in the Render environment
 3. Deploy — build and start commands are pre-configured
 
 > Free-tier services sleep after 15 min of inactivity. First request after sleep takes ~30s.
@@ -361,8 +390,9 @@ This repo includes `render.yaml` and `backend/.python-version` for zero-config d
 
 - CSV upload supports only two columns: `ds` (date) and `y` (numeric)
 - Forecasting accuracy degrades below 90 data points
-- LLM insights require a valid API key — a fallback message is shown if missing
-- Bootstrap CI runs 500 iterations — may take 1–2 seconds on large datasets
+- Gemini free-tier has daily quota limits — Groq is used as default to avoid this
+- Bootstrap CI runs 500 iterations — takes 1–2 seconds on large datasets
+- Free-tier Render backend has cold-start delays (~30s after 15 min inactivity)
 
 ---
 
