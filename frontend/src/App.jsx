@@ -15,7 +15,7 @@ function App() {
 
   // Theme: persisted in localStorage, defaults to 'dark'
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('fiq-theme') || 'dark'
+    return localStorage.getItem('fiq-theme') || 'light'
   })
 
   // Apply theme to <html> data-theme attribute
