@@ -28,7 +28,7 @@ Many teams today rely only on past data and lack accessible, trustworthy forecas
 - **Understand uncertainty and take early action** — anomaly detection flags sudden changes before they become crises
 - **Test what-if scenarios** — interactive playground to compare "what happens if growth increases by 10%?"
 
-All mathematical computations are performed **locally** using a **Decomposable Time-Series Model** (Fourier Series seasonality + OLS trend + Bootstrap CI). **Generative AI (Gemini 2.5 Flash or Groq Llama-3)** is used exclusively to translate statistical outputs into plain-English summaries — ensuring **zero hallucination on numbers**.
+All mathematical computations are performed **locally** using a **Decomposable Time-Series Model** (Fourier Series seasonality + OLS trend + Bootstrap CI). **Generative AI (Gemini 2.0 Flash or Groq Llama-3)** is used exclusively to translate statistical outputs into plain-English summaries — ensuring **zero hallucination on numbers**.
 
 **Intended users:** Business analysts, operations teams, and non-technical decision-makers who need forward-looking insight without data science expertise.
 
@@ -102,7 +102,7 @@ All mathematical computations are performed **locally** using a **Decomposable T
 │                 → llm_service.py            │
 │                                             │
 │  llm_service.py (Model-Agnostic Router)     │
-│    "gemini" → Google Gemini 2.5 Flash API   │
+│    "gemini" → Google Gemini 2.0 Flash API   │
 │    "groq"   → Groq Llama-3.3-70B API        │
 └─────────────────────────────────────────────┘
 ```
@@ -281,7 +281,7 @@ npm run dev
 | **🎰 Scenario** | Drag sliders for growth & seasonality — compare baseline vs scenario |
 
 **Switch AI models** anytime using the navbar dropdown:  
-`✨ Google Gemini 2.5 Flash` ↔ `⚡ Groq / Llama-3.3-70B`
+`✨ Google Gemini 2.0 Flash` ↔ `⚡ Groq / Llama-3.3-70B`
 
 ### Using CSV Upload
 

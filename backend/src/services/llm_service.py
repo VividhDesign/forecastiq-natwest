@@ -6,7 +6,7 @@ forecasting engine and translates them into plain-English summaries for
 non-technical business users.
 
 Supported models:
-  - Google Gemini 2.5 Flash  (via google-generativeai)
+  - Google Gemini 2.0 Flash  (via google-generativeai)
   - Groq / Llama-3.3-70B     (via groq)
 
 Design principle: LLMs here are *translators*, not *calculators*.
@@ -84,7 +84,7 @@ Be direct and professional."""
 
 
 def _call_gemini(prompt: str) -> str:
-    """Call Google Gemini Pro API."""
+    """Call Google Gemini 2.0 Flash API."""
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise ValueError("GEMINI_API_KEY not set in environment variables.")
