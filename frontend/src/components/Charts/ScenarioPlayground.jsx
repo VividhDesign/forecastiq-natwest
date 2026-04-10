@@ -10,9 +10,10 @@ import './ScenarioPlayground.css'
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 
 export default function ScenarioPlayground({ data, contextLabel, selectedModel }) {
-  const [growthMultiplier, setGrowthMultiplier] = useState(1.1)
+  const [growthMultiplier, setGrowthMultiplier] = useState(1.0)
   const [seasonalityStrength, setSeasonalityStrength] = useState(1.0)
   const [forecastWeeks, setForecastWeeks] = useState(4)
+  const [removeOutliers, setRemoveOutliers] = useState(false)
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -26,6 +27,7 @@ export default function ScenarioPlayground({ data, contextLabel, selectedModel }
         growth_multiplier: growthMultiplier,
         seasonality_strength: seasonalityStrength,
         forecast_weeks: forecastWeeks,
+        remove_outliers: removeOutliers,
         model_choice: selectedModel,
       })
       setResult(res.data)
@@ -34,7 +36,7 @@ export default function ScenarioPlayground({ data, contextLabel, selectedModel }
     } finally {
       setLoading(false)
     }
-  }, [data, growthMultiplier, seasonalityStrength, forecastWeeks, selectedModel])
+  }, [data, growthMultiplier, seasonalityStrength, forecastWeeks, removeOutliers, selectedModel])
 
   // Auto-run on mount
   useEffect(() => { runScenario() }, [])
@@ -49,6 +51,13 @@ export default function ScenarioPlayground({ data, contextLabel, selectedModel }
   })) : []
 
   const growthPct = Math.round((growthMultiplier - 1) * 100)
+  const scenarioLabel = (() => {
+    const parts = []
+    if (growthPct !== 0) parts.push(`${growthPct >= 0 ? '+' : ''}${growthPct}% growth`)
+    if (seasonalityStrength !== 1.0) parts.push(`${seasonalityStrength.toFixed(1)}× seasonality`)
+    if (removeOutliers) parts.push('outliers removed')
+    return parts.length > 0 ? parts.join(', ') : 'Baseline'
+  })()
 
   return (
     <div className="scenario-layout">
@@ -85,17 +94,29 @@ export default function ScenarioPlayground({ data, contextLabel, selectedModel }
           </div>
         </div>
 
-        <div className="flex items-center gap-3" style={{ marginTop: '20px', flexWrap: 'wrap' }}>
-          <div className="flex items-center gap-2">
-            <label className="label" style={{ margin: 0 }}>Forecast Weeks:</label>
-            <select className="input" style={{ width: 'auto', padding: '7px 10px' }} value={forecastWeeks} onChange={e => setForecastWeeks(Number(e.target.value))}>
-              {[1,2,3,4,5,6].map(w => <option key={w} value={w}>{w}w</option>)}
-            </select>
+          <div style={{ marginTop: '20px' }}>
+            <div className="toggle-wrapper" style={{ marginBottom: '8px' }}>
+              <label className="toggle">
+                <input type="checkbox" checked={removeOutliers} onChange={e => setRemoveOutliers(e.target.checked)} />
+                <span className="toggle-slider" />
+              </label>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '0.88rem' }}>Remove Outliers</div>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>Winsorize top/bottom 5% before fitting — shows cleaner underlying trend</div>
+              </div>
+            </div>
           </div>
-          <button className="btn btn-primary" onClick={runScenario} disabled={loading} style={{ flexShrink: 0 }}>
-            {loading ? <><span className="spinner" /> Running...</> : '▶ Run Scenario'}
-          </button>
-        </div>
+          <div className="flex items-center gap-3" style={{ marginTop: '16px', flexWrap: 'wrap' }}>
+            <div className="flex items-center gap-2">
+              <label className="label" style={{ margin: 0 }}>Forecast Weeks:</label>
+              <select className="input" style={{ width: 'auto', padding: '7px 10px' }} value={forecastWeeks} onChange={e => setForecastWeeks(Number(e.target.value))}>
+                {[1,2,3,4,5,6].map(w => <option key={w} value={w}>{w}w</option>)}
+              </select>
+            </div>
+            <button className="btn btn-primary" onClick={runScenario} disabled={loading} style={{ flexShrink: 0 }}>
+              {loading ? <><span className="spinner" /> Running...</> : '▶ Run Scenario'}
+            </button>
+          </div>
       </div>
 
       {error && <div style={{ color: 'var(--red)', fontSize: '0.85rem', padding: '10px', background: 'rgba(239,68,68,0.08)', borderRadius: 'var(--radius-sm)', marginTop: '12px' }}>⚠️ {error}</div>}
@@ -112,9 +133,9 @@ export default function ScenarioPlayground({ data, contextLabel, selectedModel }
                   Growth: {result.baseline_stats.growth_pct_over_period}%
                 </div>
               </div>
-              <div className="stat-card" style={{ borderColor: 'rgba(99,102,241,0.4)' }}>
+              <div className="stat-card" style={{ borderColor: 'rgba(245,158,11,0.4)' }}>
                 <div className="stat-label">Scenario End Value</div>
-                <div className="stat-value" style={{ color: 'var(--accent-light)' }}>{result.scenario_stats.forecast_end_value?.toLocaleString()}</div>
+                <div className="stat-value" style={{ color: 'var(--amber)' }}>{result.scenario_stats.forecast_end_value?.toLocaleString()}</div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
                   Growth: {result.scenario_stats.growth_pct_over_period}%
                 </div>
@@ -134,8 +155,8 @@ export default function ScenarioPlayground({ data, contextLabel, selectedModel }
               <ComposedChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="scenarioArea" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#6366f1" stopOpacity={0.02} />
+                    <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.12} />
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
@@ -146,7 +167,7 @@ export default function ScenarioPlayground({ data, contextLabel, selectedModel }
                 <Area type="monotone" dataKey="scenario_upper" stroke="none" fill="url(#scenarioArea)" legendType="none" dot={false} activeDot={false} name="Scenario Band" />
                 <Area type="monotone" dataKey="scenario_lower" stroke="none" fill="var(--bg-base)" legendType="none" dot={false} activeDot={false} />
                 <Line type="monotone" dataKey="baseline" stroke="#94a3b8" strokeWidth={2} strokeDasharray="5 3" dot={false} name="Baseline" />
-                <Line type="monotone" dataKey="scenario" stroke="#818cf8" strokeWidth={2.5} dot={false} name={`Scenario (${growthPct >= 0 ? '+' : ''}${growthPct}%)`} activeDot={{ r: 4 }} />
+                <Line type="monotone" dataKey="scenario" stroke="#f59e0b" strokeWidth={2.5} dot={false} name={`Scenario (${scenarioLabel})`} activeDot={{ r: 4 }} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>

@@ -131,6 +131,7 @@ export default function Dashboard({ datasetPayload, selectedModel, onModelChange
                   <ForecastChart
                     historicalFit={forecastData.historical_fit}
                     forecast={forecastData.forecast}
+                    naiveBaseline={forecastData.naive_baseline}
                     anomalies={forecastData.anomalies}
                     contextLabel={contextLabel}
                   />
@@ -142,10 +143,32 @@ export default function Dashboard({ datasetPayload, selectedModel, onModelChange
                   text={forecastData.forecast_insight}
                 />
                 <div className="glass-card">
-                  <h3 style={{ marginBottom: '14px' }}>Peak Prediction</h3>
-                  <p style={{ fontSize: '0.88rem' }}>
-                    Highest forecasted value expected around <strong style={{ color: 'var(--accent-light)' }}>{stats?.peak_predicted_date}</strong>.
-                    Plan ahead for this period to capitalize on the opportunity or prepare for the load.
+                  <h3 style={{ marginBottom: '14px' }}>Pattern Breakdown</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Trend over history</span>
+                      <span style={{ fontWeight: 600, color: stats?.trend_slope_pct >= 0 ? 'var(--green)' : 'var(--red)' }}>
+                        {stats?.trend_slope_pct >= 0 ? '+' : ''}{stats?.trend_slope_pct}%
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Seasonal amplitude</span>
+                      <span style={{ fontWeight: 600 }}>{stats?.seasonal_amplitude?.toLocaleString()}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Naive baseline end</span>
+                      <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{stats?.naive_forecast_end?.toLocaleString()}</span>
+                    </div>
+                    <div style={{ height: '1px', background: 'var(--border)' }} />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Model vs naive</span>
+                      <span style={{ fontWeight: 700, color: stats?.model_vs_naive_pct >= 0 ? 'var(--amber)' : 'var(--blue)' }}>
+                        {stats?.model_vs_naive_pct >= 0 ? '+' : ''}{stats?.model_vs_naive_pct}%
+                      </span>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '12px' }}>
+                    Model forecast vs a simple 28-day rolling average — shows the model is learning patterns beyond a naive baseline.
                   </p>
                 </div>
               </div>

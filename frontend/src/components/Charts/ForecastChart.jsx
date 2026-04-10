@@ -19,7 +19,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   )
 }
 
-export default function ForecastChart({ historicalFit, forecast, anomalies, contextLabel }) {
+export default function ForecastChart({ historicalFit, forecast, anomalies, contextLabel, naiveBaseline }) {
   // Merge historical + forecast into one dataset for the chart
   const historicalPoints = (historicalFit || []).map(d => ({
     ds: d.ds,
@@ -30,12 +30,13 @@ export default function ForecastChart({ historicalFit, forecast, anomalies, cont
     isForecast: false,
   }))
 
-  const forecastPoints = (forecast || []).map(d => ({
+  const forecastPoints = (forecast || []).map((d, i) => ({
     ds: d.ds,
     actual: null,
     predicted: d.yhat,
     lower: d.yhat_lower,
     upper: d.yhat_upper,
+    naive: naiveBaseline?.[i]?.yhat_naive ?? null,
     isForecast: true,
   }))
 
@@ -70,6 +71,7 @@ export default function ForecastChart({ historicalFit, forecast, anomalies, cont
         <div className="chart-legend-pills">
           <span className="legend-pill" style={{ borderColor: '#f59e0b' }}>— Historical</span>
           <span className="legend-pill" style={{ borderColor: '#34d399', borderStyle: 'dashed' }}>-- Forecast</span>
+          <span className="legend-pill" style={{ borderColor: '#94a3b8', borderStyle: 'dotted' }}>··· Naive Baseline</span>
           <span className="legend-pill" style={{ borderColor: '#f87171' }}>● Anomaly</span>
         </div>
       </div>
@@ -143,6 +145,19 @@ export default function ForecastChart({ historicalFit, forecast, anomalies, cont
             name="Actual"
             connectNulls={false}
             activeDot={{ r: 4, fill: '#f59e0b' }}
+          />
+
+          {/* Naive Baseline — flat rolling-mean line for comparison */}
+          <Line
+            type="monotone"
+            dataKey="naive"
+            stroke="#94a3b8"
+            strokeWidth={1.5}
+            strokeDasharray="3 5"
+            dot={false}
+            name="Naive Baseline (28-day avg)"
+            connectNulls={false}
+            activeDot={false}
           />
 
           {/* Forecast line — dashed */}

@@ -43,6 +43,7 @@ class ScenarioRequest(BaseModel):
     seasonality_strength: float = Field(default=1.0, ge=0.1, le=3.0)
     forecast_weeks: int = Field(default=4, ge=1, le=6)
     model_choice: Literal["gemini", "groq"] = "gemini"
+    remove_outliers: bool = False
 
 
 class AnomalyInsightRequest(BaseModel):
@@ -161,6 +162,7 @@ def scenario(req: ScenarioRequest):
         growth_multiplier=req.growth_multiplier,
         seasonality_strength=req.seasonality_strength,
         forecast_weeks=req.forecast_weeks,
+        remove_outliers=req.remove_outliers,
     )
 
     # Generate LLM comparison insight

@@ -51,19 +51,20 @@ Be direct, professional, and avoid jargon."""
 def _build_anomaly_prompt(anomaly: dict, context_label: str) -> str:
     """Build a prompt for explaining a single detected anomaly."""
     direction_word = "unexpected spike" if anomaly["direction"] == "spike" else "sudden drop"
-    return f"""You are a concise data analyst.
-A {direction_word} was detected in {context_label} data.
+    return f"""You are a concise data analyst helping a business team act on an anomaly.
+An {direction_word} was detected in {context_label} data.
 
 Date: {anomaly['ds']}
 Actual Value: {anomaly['y']}
 Expected Value (Model Forecast): {anomaly['yhat']}
 Deviation: {anomaly['pct_deviation']}%
 
-Write 2 sentences:
-1. Describe the anomaly in plain language.
-2. Suggest 1 possible business cause or recommended next action.
+Write exactly 3 sentences:
+1. Describe what happened in plain language (the anomaly itself).
+2. Suggest the most likely business cause or contributing factor.
+3. Recommend one concrete next step the team should take (e.g., check system logs, review regional data, contact operations, monitor the next 48 hours).
 
-Be concise and avoid technical jargon."""
+Be specific and actionable. Avoid technical jargon."""
 
 
 def _build_scenario_prompt(baseline_stats: dict, scenario_stats: dict) -> str:
