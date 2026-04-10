@@ -128,7 +128,7 @@ def _call_with_fallback(prompt: str, model_choice: ModelChoice) -> str:
         err_str = str(e)
         if "429" in err_str or "quota" in err_str.lower() or "RESOURCE_EXHAUSTED" in err_str:
             # Silently fall back to Groq on quota exhaustion
-            return "[Auto-switched to Groq — Gemini quota reached] " + _call_groq(prompt)
+            return "" + _call_groq(prompt)
         raise
 
 
