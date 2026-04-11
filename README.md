@@ -4,6 +4,7 @@
 <img src="https://img.shields.io/badge/Theme-Predictive%20Forecasting-f59e0b?style=for-the-badge" alt="Theme"/>
 <img src="https://img.shields.io/badge/Status-Live-22c55e?style=for-the-badge" alt="Status"/>
 <img src="https://img.shields.io/badge/Deep%20Learning-N--BEATS%20%2B%20PyTorch-34d399?style=for-the-badge" alt="Deep Learning"/>
+<img src="https://img.shields.io/badge/Live%20Stock-Yahoo%20Finance-6366f1?style=for-the-badge" alt="Live Stock"/>
 
 # 📊 ForecastIQ
 
@@ -349,6 +350,7 @@ Both models decompose the series into **trend + seasonality**. Classical does it
 | **Classical Forecast** | NumPy, scikit-learn | Pure Python OLS+Fourier — no C++ compilation required |
 | **Deep Learning Forecast** | PyTorch (CPU) | N-BEATS (ICLR 2020): Trend + Seasonality stacks, MC Dropout CI, hidden=64, epochs=8; in-memory cache (30 min TTL) makes re-runs instant |
 | **Data Generation** | NumPy (Fourier series) | Realistic synthetic data, zero privacy risk |
+| **Live Market Data** | yfinance + Yahoo Finance | Real stock price history — NWG.L (NatWest), AAPL, TSLA, ^FTSE, etc. |
 | **AI — Groq (default)** | `groq` SDK | Llama-3.3-70B at ultra-low latency, no quota limits |
 | **AI — Gemini** | `google-generativeai` SDK | gemini-2.0-flash, with auto-fallback to Groq on 429 |
 | **Deployment** | Render (backend) + Vercel (frontend) | Free-tier, CI/CD from GitHub |
@@ -459,6 +461,24 @@ App at `http://localhost:5173`
 2. Select a business context (e.g. E-commerce Sales)
 3. Choose a trend direction and toggle anomaly injection
 4. Click **Launch Dashboard →**
+
+### Live Stock Data (NEW)
+
+Fetch real historical stock prices directly from Yahoo Finance:
+
+1. Click the **📈 Live Stock** tab on the onboarding screen
+2. Select a popular ticker or type any Yahoo Finance symbol:
+   - **NWG.L** — NatWest Group (London Stock Exchange, GBp)
+   - **AAPL** — Apple Inc. (NASDAQ, USD)
+   - **TSLA** — Tesla Inc. (NASDAQ, USD)
+   - **^FTSE** — FTSE 100 Index
+   - **^GSPC** — S&P 500 Index
+3. Choose 1-year, 2-year, or 5-year history
+4. Click **Load Stock Data →** — the full dashboard runs on real market data
+
+> **Privacy note:** Stock prices are publicly available market data from Yahoo Finance. No user data is stored or transmitted. The endpoint is read-only.
+
+> **Honest disclaimer shown in-app:** Financial markets are inherently volatile — confidence intervals will be wider than for operational business metrics. Past price patterns do not guarantee future performance.
 
 ### On the dashboard
 

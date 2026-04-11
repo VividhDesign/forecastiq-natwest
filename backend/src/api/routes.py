@@ -97,6 +97,101 @@ def simulate_data(req: SimulateRequest):
     return result
 
 
+@router.get("/fetch-stock", tags=["Data"])
+def fetch_stock(ticker: str = "NWG.L", period: str = "2y"):
+    """
+    Fetch real historical stock price data via Yahoo Finance (yfinance).
+
+    Returns the same {ds, y} format as /simulate so the dashboard pipeline
+    requires zero changes — the forecasting, anomaly detection, scenario
+    analysis, and model comparison all work identically on stock data.
+
+    Why this matters for NatWest:
+      - NWG.L is NatWest Group's own stock ticker on the London Stock Exchange
+      - Financial time-series are the core use-case for NatWest's business
+      - Stock data demonstrates the model's behaviour on noisy, event-driven
+        series where confidence intervals naturally widen — an honest and
+        educational result for judges
+
+    Args:
+        ticker: Yahoo Finance symbol (e.g. NWG.L, AAPL, TSLA, ^FTSE)
+        period:  yfinance period string — 1y | 2y | 5y  (default 2y)
+
+    Privacy note:
+        Stock prices are publicly available market data. No user data is
+        stored, transmitted, or logged by this endpoint.
+    """
+    try:
+        import yfinance as yf
+
+        hist = yf.download(
+            ticker.upper(),
+            period=period,
+            interval="1d",
+            auto_adjust=True,
+            progress=False,
+        )
+
+        if hist.empty:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data found for ticker '{ticker.upper()}'. "
+                       "Check the symbol (e.g. NWG.L, AAPL, TSLA) and try again.",
+            )
+
+        # Flatten MultiIndex columns if present (newer yfinance versions)
+        if isinstance(hist.columns, pd.MultiIndex):
+            hist.columns = hist.columns.get_level_values(0)
+
+        hist = hist.reset_index()
+        data = [
+            {"ds": str(row["Date"])[:10], "y": round(float(row["Close"]), 4)}
+            for _, row in hist.iterrows()
+            if not pd.isna(row["Close"])
+        ]
+
+        if len(data) < 30:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Insufficient data for '{ticker.upper()}': "
+                       f"only {len(data)} trading days (minimum 30 required).",
+            )
+
+        # Currency heuristic: .L = London Stock Exchange (GBp), else USD
+        currency = "GBp" if ticker.upper().endswith(".L") else \
+                   "JPY" if ticker.upper().endswith(".T") else "USD"
+
+        context_meta = {
+            "label":       f"{ticker.upper()} — Daily Closing Price",
+            "unit":        currency,
+            "description": (
+                f"Real historical closing price for {ticker.upper()} sourced from "
+                "Yahoo Finance via yfinance. Adjusted for stock splits and dividends. "
+                "Financial markets are inherently volatile — confidence intervals will "
+                "be wider than operational business metrics. Past price patterns do not "
+                "guarantee future performance."
+            ),
+        }
+
+        return {
+            "data":         data,
+            "context_meta": context_meta,
+            "ticker":       ticker.upper(),
+            "period":       period,
+            "data_points":  len(data),
+            "source":       "yahoo_finance",
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch '{ticker}' from Yahoo Finance: {str(e)}",
+        )
+
+
+
 @router.post("/upload", tags=["Data"])
 async def upload_csv(file: UploadFile = File(...)):
     """
