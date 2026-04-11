@@ -253,7 +253,7 @@ Or enter any Yahoo Finance symbol. Supports 1-year, 2-year, or 5-year history wi
 ### 1. Clone
 
 ```bash
-git clone https://github.com/your-username/forecastiq-natwest.git
+git clone https://github.com/VividhDesign/forecastiq-natwest.git
 cd forecastiq-natwest
 ```
 
@@ -310,14 +310,12 @@ forecastiq-natwest/
 │   ├── requirements.txt
 │   ├── .env.example                 # Copy → .env, add GROQ_API_KEY
 │   └── src/
-│       ├── main.py                  # FastAPI app + CORS + startup pre-training
+│       ├── main.py                  # FastAPI app + CORS + health endpoints
 │       ├── api/
 │       │   └── routes.py            # All REST endpoints
 │       └── services/
 │           ├── data_simulator.py    # Fourier synthetic data + seed caching
 │           ├── forecasting.py       # OLS + Bootstrap CI + anomaly detection
-│           ├── nbeats_forecasting.py # N-BEATS (ICLR 2020) + MC Dropout CI
-│           ├── nbeats_pretrain.py   # Background pre-training at startup
 │           └── llm_service.py       # Groq/Gemini router with auto-fallback
 │
 └── frontend/
