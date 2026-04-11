@@ -186,12 +186,6 @@ export default function Onboarding({ onDataReady, theme, onThemeToggle }) {
               style={{ position: 'relative' }}
             >
               📈 Live Stock
-              <span style={{
-                position: 'absolute', top: '-6px', right: '-4px',
-                background: '#34d399', color: '#0f172a', fontSize: '0.6rem',
-                fontWeight: 700, padding: '1px 5px', borderRadius: '8px',
-                letterSpacing: '0.3px',
-              }}>NEW</span>
             </button>
             <button
               className={`tab ${tab === 'upload' ? 'active' : ''}`}
