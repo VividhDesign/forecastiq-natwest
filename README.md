@@ -3,6 +3,7 @@
 <img src="https://img.shields.io/badge/NatWest-Code%20for%20Purpose-d97706?style=for-the-badge" alt="NatWest Badge"/>
 <img src="https://img.shields.io/badge/Theme-Predictive%20Forecasting-f59e0b?style=for-the-badge" alt="Theme"/>
 <img src="https://img.shields.io/badge/Status-Live-22c55e?style=for-the-badge" alt="Status"/>
+<img src="https://img.shields.io/badge/Deep%20Learning-1D%20CNN%20%2B%20PyTorch-8b5cf6?style=for-the-badge" alt="Deep Learning"/>
 
 # 📊 ForecastIQ
 
@@ -106,13 +107,12 @@ Each anomaly records its direction, date, and percentage deviation. The AI gener
 ┌─────────────────────────────────────────────┐
 │         User's Browser (Vercel)             │
 │         React + Vite + Recharts             │
-│  ┌──────────┐ ┌──────────┐ ┌─────────────┐ │
-│  │Onboarding│ │Dashboard │ │ AI Model    │ │
-│  │ Sandbox /│ │Forecast /│ │ Selector    │ │
-│  │CSV Upload│ │Anomalies/│ │Groq ↔ Gemini│ │
-│  └──────────┘ │Scenarios/│ └─────────────┘ │
-│               │Chat Q&A  │                 │
-│               └──────────┘                 │
+│  ┌──────────┐ ┌──────────────────────────┐  │
+│  │Onboarding│ │        Dashboard         │  │
+│  │ Sandbox /│ │ Forecast / Anomalies /   │  │
+│  │CSV Upload│ │ Scenario / Compare Models│  │
+│  └──────────┘ │ Chat Q&A / Raw Data      │  │
+│               └──────────────────────────┘  │
 └────────────────────┬────────────────────────┘
                      │ HTTPS (REST API)
 ┌────────────────────▼────────────────────────┐
@@ -124,12 +124,18 @@ Each anomaly records its direction, date, and percentage deviation. The AI gener
 │    ├─ OLS + Fourier + Bootstrap CI          │
 │    ├─ Anomaly detection                     │
 │    ├─ Naive baseline comparison             │
-│    ├─ Pattern decomposition stats           │
+│    ├─ Accuracy metrics (MAE, RMSE, MAPE)    │
 │    └─ LLM insight (auto-fallback)           │
 │  POST /api/anomaly-insight → Per-anomaly AI │
 │  POST /api/scenario → What-if comparison    │
 │    ├─ Growth / seasonality multipliers      │
 │    └─ Remove outliers (winsorization)       │
+│  POST /api/model-comparison → Dual model    │
+│    ├─ Classical (OLS+Fourier) forecast      │
+│    ├─ 1D CNN (PyTorch) forecast             │
+│    ├─ MAE / RMSE / MAPE on holdout set      │
+│    ├─ Winner determination (lowest MAE)     │
+│    └─ AI comparison insight                 │
 │  POST /api/chat → Free-form Q&A             │
 │    └─ Grounded in verified stats only       │
 │                                             │
@@ -161,6 +167,7 @@ Each anomaly records its direction, date, and percentage deviation. The AI gener
 | **Pattern Breakdown** | Dashboard card showing trend slope %, seasonal amplitude, and model-vs-naive comparison |
 | **Anomaly Detection** | Flags historical data points outside the bootstrap CI band, classified as spikes or drops with AI explanations and actionable next steps |
 | **Scenario Playground** | Interactive sliders for growth and seasonality multipliers, plus a "Remove Outliers" toggle (winsorization) — side-by-side baseline vs scenario |
+| **🧠 Compare Models** | Side-by-side comparison of Classical (OLS+Fourier) vs 1D CNN (Deep Learning) — shows MAE, RMSE, MAPE on a 20% holdout set, declares a winner, and explains the result via AI |
 | **💬 Ask Tab** | Conversational Q&A grounded in verified data — ask anything about the forecast, trends, or anomalies |
 | **Multi-LLM Insights** | Switch between Gemini 2.0 Flash and Groq (Llama-3.3-70B) live — with auto-fallback on quota |
 | **Raw Data Explorer** | Searchable, sortable table with anomaly highlights, % deviation, and one-click CSV export |
@@ -224,15 +231,35 @@ Our model works well for **stable, seasonal data** with moderate trends. A more 
 - The time series has **external regressors** (e.g. promotions, weather, pricing changes)
 - The dataset exceeds 10,000+ points where deep learning can find non-linear structure
 
-We deliberately chose the simpler model because **the problem statement values transparency over accuracy** — and for 1–6 week horizons on business data, our approach is highly competitive.
+To answer this question empirically — not just theoretically — we built a **1D CNN model** (see below) and let users run both on their own data. The winner changes by dataset, which is exactly the point.
+
+### 1D CNN Deep Learning Model
+
+Alongside the classical model, we implement a lightweight **1D Convolutional Neural Network** using PyTorch:
+
+```
+Input: sliding window of 28 past days   shape: (batch, 1, 28)
+  → Conv1D(32 filters, kernel=3) + ReLU
+  → Conv1D(16 filters, kernel=3) + ReLU
+  → Flatten → Linear(32) + ReLU + Dropout(0.2)
+  → Linear(1)                            ~16,000 parameters
+```
+
+**Why 1D CNN?**
+- Convolutional filters learn local temporal patterns (weekly spikes, dips) automatically
+- No sequential bottleneck (unlike LSTM/GRU) — trains in ~10 seconds on CPU
+- Works well with the 730-day datasets our simulator generates
+
+**Confidence Intervals via MC Dropout:** At inference time, we run 100 forward passes with dropout *enabled* (Monte Carlo Dropout). The 2.5th and 97.5th percentiles of the resulting distribution form the 95% confidence band — a lightweight Bayesian approximation without full Bayesian inference.
+
+**Holdout evaluation:** Both models are trained on the first 80% of data and scored on the last 20% (hidden holdout set) using MAE, RMSE, and MAPE. The **Compare Models tab** shows which model wins on each specific dataset.
 
 ### Forecast validation
 
-We validate our model against a **naive baseline** (28-day rolling mean) on every single run. This serves as a built-in holdout-free sanity check:
+We validate our model against a **naive baseline** (28-day rolling mean) on every single run, and against the CNN model on the Compare Models tab:
 - If model_vs_naive_pct ≈ 0%, the model isn't adding value over a trivial forecast
 - If model_vs_naive_pct > 0%, the learned trend + seasonality are capturing real patterns
-
-A more thorough validation would use train/test splitting (e.g. train on first 80% of data, evaluate on the last 20%). This is straightforward to implement but was deprioritized for the MVP in favour of the live naive comparison which gives judges an immediate visual proof during demos.
+- The **Compare Models** tab runs a full 80/20 train/holdout split for both models, computing MAE, RMSE, and MAPE — giving judges a rigorous, reproducible comparison.
 
 ---
 
@@ -243,19 +270,21 @@ The problem statement defines 3 learning areas participants should demonstrate:
 ### 1. Ways to look ahead — and how to judge if the approach helps
 
 - **How it works:** Our model decomposes time series into trend (OLS) + seasonality (Fourier) + noise — a well-established approach used in production at companies like Meta (Facebook Prophet uses the same framework).
-- **When more advanced models are justified:** We explain this explicitly above — our linear model is ideal for 1–6 week horizons, but changepoints and external regressors would warrant gradient boosting or neural methods.
-- **How to validate:** The naive baseline serves as a built-in benchmark. We compare every forecast against a simple 28-day average — if the model can't beat it, that's a signal the data lacks learnable patterns.
+- **When more advanced models are justified:** We don't just theorise — we **demonstrate it live**. The 🧠 Compare Models tab runs both a Classical OLS+Fourier model and a 1D CNN on the user's actual data, compares their MAE/RMSE/MAPE on a held-out 20% test set, and declares a winner per dataset. Users see directly when deep learning outperforms classical methods — and when it doesn't.
+- **How to validate:** Three complementary validation signals: (1) naive baseline comparison on every forecast, (2) holdout MAE/RMSE/MAPE in the Compare Models tab, (3) AI-generated plain-English explanation of *why* one model outperformed.
 
 ### 2. Why simple comparisons matter
 
 - **Baseline as sanity check:** The dotted grey naive baseline line on every chart ensures judges (and users) can immediately see whether the model is actually useful.
 - **"Pattern Breakdown" card:** Shows model_vs_naive_pct — a single number that answers "is this model worth using?" If close to 0%, the simple average is just as good.
-- **Simple models often win:** Our 17-feature OLS model consistently outperforms naive averages on seasonal data while remaining fully transparent. This validates the "simple models often outperform overly complex ones" insight from the problem statement.
+- **Classical vs CNN head-to-head:** The Compare Models tab (🧠) shows a proper side-by-side: both forecast lines on the same chart, a metrics table (MAE / RMSE / MAPE), a winner badge, and an AI explanation of the result.
+- **Simple models often win:** On synthetic data with clean seasonality, Classical (OLS+Fourier) typically beats CNN — demonstrating that advanced ≠ always better. On noisier or non-linear data, CNN wins. The tab makes this visible and educational.
 
 ### 3. Communicating uncertainty effectively
 
 - **Uncertainty is information, not error:** The shaded 95% confidence band doesn't mean "the model might be wrong." It means "here's the honest range of likely outcomes." This reframing helps users make better decisions.
 - **Growing CI for future forecasts:** The band widens over time — visually communicating that next week is more predictable than next month. This is intuitive even for non-technical audiences.
+- **MC Dropout CI for CNN:** The 1D CNN model uses Monte Carlo Dropout (100 inference passes with dropout active) to produce its uncertainty bands — a principled Bayesian approximation shown alongside the classical bootstrap CI.
 - **Range format in AI summaries:** Every AI insight mentions the confidence range explicitly (e.g. "95% range: 2,476 – 4,971") so the user always sees the spread, not just a single number.
 - **How we make ranges intuitive:** We use a shaded gradient on the chart (not just error bars), label it clearly in the stat cards ("95% probability band"), and the AI writes about it in natural language. Non-technical users understand "the forecast could range from X to Y" far better than "σ = 234.5."
 
@@ -269,7 +298,8 @@ The problem statement defines 3 learning areas participants should demonstrate:
 | **Charts** | Recharts | Supports shaded confidence bands and interactive tooltips |
 | **Styling** | Vanilla CSS (DM Sans + DM Mono) | Full control, no framework lock-in |
 | **Backend** | Python 3.11, FastAPI | Async, auto-generated OpenAPI docs |
-| **Forecasting** | NumPy, scikit-learn | Pure Python — no C++ compilation required at deploy time |
+| **Classical Forecast** | NumPy, scikit-learn | Pure Python OLS+Fourier — no C++ compilation required |
+| **Deep Learning Forecast** | PyTorch (CPU) | 1D CNN with MC Dropout confidence intervals; ~16k params, trains in ~10s |
 | **Data Generation** | NumPy (Fourier series) | Realistic synthetic data, zero privacy risk |
 | **AI — Groq (default)** | `groq` SDK | Llama-3.3-70B at ultra-low latency, no quota limits |
 | **AI — Gemini** | `google-generativeai` SDK | gemini-2.0-flash, with auto-fallback to Groq on 429 |
@@ -295,8 +325,9 @@ ForecastIQ/
 │       │   └── routes.py               # REST endpoint definitions
 │       └── services/
 │           ├── data_simulator.py       # Synthetic data (Fourier + noise)
-│           ├── forecasting.py          # Core model (OLS + Bootstrap CI)
-│           └── llm_service.py          # LLM router (auto-fallback)
+│           ├── forecasting.py          # Core model (OLS + Bootstrap CI + MAE/RMSE/MAPE)
+│           ├── cnn_forecasting.py      # 1D CNN model (PyTorch + MC Dropout CI)
+│           └── llm_service.py          # LLM router (auto-fallback + comparison insight)
 │   └── tests/
 │       └── test_forecasting.py         # 11 test assertions
 │
@@ -315,6 +346,8 @@ ForecastIQ/
             │   ├── ForecastChart.jsx    # Recharts + CI band + naive line
             │   ├── AnomalyPanel.jsx     # Anomaly table + AI explanations
             │   ├── ScenarioPlayground.jsx # What-if + remove outliers
+            │   ├── ModelComparison.jsx  # Classical vs CNN side-by-side UI
+            │   ├── ModelComparison.css  # Comparison tab styles
             │   ├── ChatPanel.jsx        # Free-form Q&A interface
             │   └── DataExplorer.jsx     # Filterable table + CSV export
             └── Shared/
@@ -386,6 +419,7 @@ App at `http://localhost:5173`
 | **📈 Forecast** | Line chart with 95% CI band, naive baseline (dotted grey), and AI insight. Pattern Breakdown card shows trend slope, seasonal amplitude, model vs naive % |
 | **🚨 Anomalies** | Detected spikes and drops — click any row for a 3-sentence AI explanation with recommended next steps |
 | **🎰 Scenario** | Growth & seasonality sliders + Remove Outliers toggle. Baseline vs scenario comparison + AI summary |
+| **🧠 Compare Models** | Runs Classical (OLS+Fourier) and 1D CNN side-by-side. Shows MAE / RMSE / MAPE on a 20% holdout set, winner badge, dual forecast chart, and an AI explanation of which model is better — and why |
 | **💬 Ask** | Chat Q&A — ask anything about the forecast data. 5 suggested questions for quick demos. All answers grounded in verified stats |
 | **📊 Raw Data** | Full data table with search, sort, anomaly highlights, and CSV export |
 
@@ -463,8 +497,10 @@ This repo includes `render.yaml` and `backend/.python-version` for zero-config d
 
 - CSV upload supports only two columns: `ds` (date) and `y` (numeric)
 - Forecasting accuracy degrades below 90 data points
+- Model comparison requires at least 60 data points (needs a meaningful holdout set)
 - Gemini free-tier has daily quota limits — Groq is used as default to avoid this
 - Bootstrap CI runs 500 iterations — takes 1–2 seconds on large datasets
+- CNN model trains on CPU only (no GPU acceleration on free-tier Render); inference takes ~10–15 seconds
 - Free-tier Render backend has cold-start delays (~30s after 15 min inactivity)
 
 ---
