@@ -39,6 +39,13 @@
   gap: 16px;
 }
 
+/* 3-model comparison: 3 equal columns */
+.metrics-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
 .model-metrics-card {
   padding: 20px;
   border-radius: 14px;
@@ -138,8 +145,15 @@
 }
 
 /* ── Responsive ── */
-@media (max-width: 768px) {
-  .metrics-grid {
+@media (max-width: 900px) {
+  .metrics-grid,
+  .metrics-grid-3 {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1200px) {
+  .metrics-grid-3 {
+    grid-template-columns: 1fr 1fr;
   }
 }

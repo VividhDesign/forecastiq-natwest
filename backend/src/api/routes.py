@@ -12,6 +12,7 @@ from typing import Literal, Optional, List
 from src.services.data_simulator import generate_synthetic_data
 from src.services.forecasting import run_forecast, run_scenario_forecast
 from src.services.cnn_forecasting import run_cnn_forecast
+from src.services.nbeats_forecasting import run_nbeats_forecast
 from src.services.llm_service import (
     generate_forecast_insight,
     generate_anomaly_insight,
@@ -222,10 +223,16 @@ def scenario(req: ScenarioRequest):
 @router.post("/model-comparison", tags=["Forecasting"])
 def model_comparison(req: CompareRequest):
     """
-    Run BOTH Classical (OLS+Fourier) and 1D CNN models on the same dataset.
-    Returns side-by-side forecasts and accuracy metrics for comparison.
-    This directly addresses Hackathon Learning Outcome #1:
-    'When more advanced models are justified.'
+    Run ALL THREE models on the same dataset for a head-to-head comparison:
+      1. Classical (OLS + Fourier Decomposition) — interpretable baseline
+      2. 1D CNN (Deep Learning)                  — local pattern recognition
+      3. N-BEATS (Interpretable Deep Learning)   — state-of-the-art decomposition
+
+    Returns side-by-side forecasts and accuracy metrics (MAE/RMSE/MAPE on a
+    20% holdout set) for all three. The winner is the model with the lowest MAE.
+
+    Directly addresses Hackathon Learning Outcome #1:
+    'When more advanced models are justified — demonstrated empirically.'
     """
     if len(req.data) < 60:
         raise HTTPException(
@@ -233,14 +240,13 @@ def model_comparison(req: CompareRequest):
             detail="At least 60 data points are required for model comparison (need holdout set).",
         )
 
-    # Run classical model
+    # ── Run all three models ──────────────────────────────────────────────────
     classical_result = run_forecast(
         data=req.data,
         forecast_weeks=req.forecast_weeks,
         context_label=req.context_label,
     )
 
-    # Run CNN model
     try:
         cnn_result = run_cnn_forecast(
             data=req.data,
@@ -255,13 +261,31 @@ def model_comparison(req: CompareRequest):
             "accuracy_metrics": {"mae": None, "rmse": None, "mape": None, "holdout_size": 0},
         }
 
-    # Determine winner based on MAE (lower is better)
-    classical_mae = classical_result.get("accuracy_metrics", {}).get("mae", float("inf"))
-    cnn_mae = cnn_result.get("accuracy_metrics", {}).get("mae", float("inf"))
-    if cnn_mae is None:
-        cnn_mae = float("inf")
+    try:
+        nbeats_result = run_nbeats_forecast(
+            data=req.data,
+            forecast_weeks=req.forecast_weeks,
+            context_label=req.context_label,
+        )
+    except Exception as e:
+        nbeats_result = {
+            "forecast": [],
+            "historical_fit": [],
+            "summary_stats": {"model_name": "N-BEATS", "error": str(e)},
+            "accuracy_metrics": {"mae": None, "rmse": None, "mape": None, "holdout_size": 0},
+        }
 
-    winner = "classical" if classical_mae <= cnn_mae else "cnn"
+    # ── Determine winner (lowest MAE across all three) ─────────────────────────
+    def _safe_mae(result):
+        v = result.get("accuracy_metrics", {}).get("mae", None)
+        return float(v) if v is not None else float("inf")
+
+    maes = {
+        "classical": _safe_mae(classical_result),
+        "cnn":       _safe_mae(cnn_result),
+        "nbeats":    _safe_mae(nbeats_result),
+    }
+    winner = min(maes, key=maes.get)
 
     comparison = {
         "classical": {
@@ -274,17 +298,24 @@ def model_comparison(req: CompareRequest):
             "summary_stats": cnn_result["summary_stats"],
             "accuracy_metrics": cnn_result.get("accuracy_metrics", {}),
         },
+        "nbeats": {
+            "forecast": nbeats_result["forecast"],
+            "summary_stats": nbeats_result["summary_stats"],
+            "accuracy_metrics": nbeats_result.get("accuracy_metrics", {}),
+        },
         "winner": winner,
+        "all_maes": maes,
         "naive_baseline": classical_result.get("naive_baseline", []),
     }
 
-    # Generate AI insight about the comparison
+    # ── AI insight (3-way comparison) ─────────────────────────────────────────
     try:
         comparison["comparison_insight"] = generate_comparison_insight(
             classical_stats=classical_result["summary_stats"],
             cnn_stats=cnn_result["summary_stats"],
             winner=winner,
             model_choice=req.model_choice,
+            nbeats_stats=nbeats_result["summary_stats"],
         )
     except Exception as e:
         comparison["comparison_insight"] = f"[AI insight unavailable: {str(e)}]"

@@ -183,18 +183,36 @@ def generate_chat_insight(
     return _call_with_fallback(prompt, model_choice)
 
 
-def _build_comparison_prompt(classical_stats: dict, cnn_stats: dict, winner: str) -> str:
-    """Build a prompt comparing Classical vs CNN model performance."""
-    winner_name = "Classical (OLS + Fourier)" if winner == "classical" else "1D CNN (Deep Learning)"
+def _build_comparison_prompt(classical_stats: dict, cnn_stats: dict, winner: str, nbeats_stats: dict = None) -> str:
+    """Build a prompt comparing all three models: Classical vs CNN vs N-BEATS."""
+    winner_names = {
+        "classical": "Classical (OLS + Fourier)",
+        "cnn": "1D CNN (Deep Learning)",
+        "nbeats": "N-BEATS (Interpretable Deep Learning)",
+    }
+    winner_name = winner_names.get(winner, winner)
+
+    nbeats_section = ""
+    if nbeats_stats and "error" not in nbeats_stats:
+        nbeats_section = f"""
+Model C — N-BEATS (Interpretable Deep Learning, ICLR 2020):
+- Forecast End Value: {nbeats_stats.get('forecast_end_value', 'N/A')}
+- Growth: {nbeats_stats.get('growth_pct_over_period', 'N/A')}%
+- MAE: {nbeats_stats.get('mae', 'N/A')}
+- RMSE: {nbeats_stats.get('rmse', 'N/A')}
+- MAPE: {nbeats_stats.get('mape', 'N/A')}%
+- Architecture: Trend Stack (polynomial basis) + Seasonality Stack (Fourier basis) — same decomposition as Classical, but learned from data"""
+
     return f"""You are a data science expert explaining model comparison results to a business audience.
-Two forecasting models were tested on the same dataset. Here are the results:
+Three forecasting models were tested head-to-head on the same dataset:
 
 Model A — Classical (OLS + Fourier Decomposition):
 - Forecast End Value: {classical_stats.get('forecast_end_value')}
 - Growth: {classical_stats.get('growth_pct_over_period')}%
-- MAE (Mean Absolute Error): {classical_stats.get('mae')}
-- RMSE (Root Mean Square Error): {classical_stats.get('rmse')}
-- MAPE (Mean Absolute % Error): {classical_stats.get('mape')}%
+- MAE: {classical_stats.get('mae')}
+- RMSE: {classical_stats.get('rmse')}
+- MAPE: {classical_stats.get('mape')}%
+- Architecture: Linear regression + Fourier seasonality (fully interpretable, no training)
 
 Model B — 1D CNN (Deep Learning):
 - Forecast End Value: {cnn_stats.get('forecast_end_value', 'N/A')}
@@ -202,16 +220,17 @@ Model B — 1D CNN (Deep Learning):
 - MAE: {cnn_stats.get('mae', 'N/A')}
 - RMSE: {cnn_stats.get('rmse', 'N/A')}
 - MAPE: {cnn_stats.get('mape', 'N/A')}%
+- Architecture: Convolutional filters on sliding windows (captures local patterns){nbeats_section}
 
-Winner (based on lowest MAE): {winner_name}
+Winner (lowest MAE on 20% holdout set): {winner_name}
 
 Write exactly 4 sentences:
-1. State which model performed better and by how much (compare MAE/RMSE values).
-2. Explain WHY this model performed better in simple terms (e.g., data patterns, data size, complexity).
-3. State when the other model might be the better choice (specific scenarios).
-4. Give a clear recommendation for this specific dataset.
+1. State which model performed best across MAE/RMSE/MAPE and by how much versus the others.
+2. Explain in plain language WHY this model outperformed the others on this data (e.g., data regularity, size, pattern complexity).
+3. Describe when each of the other models would be the better choice (different data characteristics).
+4. Give a clear recommendation: for this specific dataset, which model should the team use in production?
 
-Be professional, concise, and educational. Avoid excessive jargon."""
+Be professional, educational, and concise. Avoid excessive jargon."""
 
 
 def generate_comparison_insight(
@@ -219,8 +238,9 @@ def generate_comparison_insight(
     cnn_stats: dict,
     winner: str,
     model_choice: ModelChoice = "gemini",
+    nbeats_stats: dict = None,
 ) -> str:
-    """Generate an AI insight comparing Classical vs CNN model performance."""
-    prompt = _build_comparison_prompt(classical_stats, cnn_stats, winner)
+    """Generate an AI insight comparing all three models: Classical vs CNN vs N-BEATS."""
+    prompt = _build_comparison_prompt(classical_stats, cnn_stats, winner, nbeats_stats)
     return _call_with_fallback(prompt, model_choice)
 
