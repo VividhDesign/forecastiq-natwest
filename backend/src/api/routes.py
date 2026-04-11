@@ -28,6 +28,7 @@ class SimulateRequest(BaseModel):
     trend_type: Literal["aggressive_growth", "stable", "declining"] = "aggressive_growth"
     inject_anomalies: bool = True
     days: int = Field(default=730, ge=90, le=1095)
+    seed: Optional[int] = Field(default=None, description="Fixed RNG seed for reproducible demo data. When set, results are cached in memory for instant repeated access.")
 
 
 class ForecastRequest(BaseModel):
@@ -86,12 +87,17 @@ def simulate_data(req: SimulateRequest):
     """
     Generate synthetic time-series data on-the-fly.
     Used by the Sandbox onboarding — no CSV needed.
+
+    Pass `seed` (e.g. 42) for deterministic, cacheable demo data.
+    Repeated calls with the same seed are served from the in-memory cache
+    in <1 ms — no recomputation.
     """
     result = generate_synthetic_data(
         context=req.context,
         trend_type=req.trend_type,
         inject_anomalies=req.inject_anomalies,
         days=req.days,
+        seed=req.seed,
     )
     return result
 

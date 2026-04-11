@@ -19,12 +19,36 @@ Design decisions
   to always peak at roughly the same calendar month regardless of the RNG
   seed.  Adding φ ∈ [0, 2π) per harmonic randomises which part of the
   year experiences the seasonal peak on every simulation run.
-"""
 
+* Optional `seed` parameter: when provided, the RNG is seeded with a fixed
+  value instead of the microsecond clock — giving reproducible, cacheable
+  datasets for demo/sandbox runs.  Results are memoised in _CACHE (LRU
+  bounded to 8 entries) so repeated clicks cost 0 ms.
+"""
 import time
 import numpy as np
 from datetime import datetime, timedelta
-from typing import Literal
+from typing import Literal, Optional
+
+# ─── In-memory result cache (keyed by all deterministic params) ────────────────
+# Bounded to 8 slots; LRU eviction.  Each entry is ~100 KB.
+_CACHE: dict = {}
+_CACHE_ORDER: list = []
+_CACHE_MAX = 8
+
+
+def _cache_get(key):
+    return _CACHE.get(key)
+
+
+def _cache_set(key, value):
+    if key in _CACHE:
+        _CACHE_ORDER.remove(key)
+    elif len(_CACHE_ORDER) >= _CACHE_MAX:
+        evict = _CACHE_ORDER.pop(0)
+        del _CACHE[evict]
+    _CACHE[key] = value
+    _CACHE_ORDER.append(key)
 
 
 # ─── Trend Configurations ─────────────────────────────────────────────────────
@@ -105,14 +129,18 @@ def generate_synthetic_data(
     trend_type: Literal["aggressive_growth", "stable", "declining"] = "aggressive_growth",
     days: int = 730,
     inject_anomalies: bool = True,
+    seed: Optional[int] = None,
 ) -> dict:
     """
     Generate a synthetic time-series dataset for predictive forecasting.
 
-    Every call is independent and produces a genuinely different dataset:
-      - Different seasonal peak months (random Fourier phase per harmonic)
-      - Different anomaly positions (random from middle 80% of series)
-      - Different noise pattern (same isolated RNG, freshly seeded each call)
+    When `seed` is None (default): microsecond-clock seeding — every call
+    produces a genuinely different dataset (different seasonal peak months,
+    anomaly positions, noise pattern).
+
+    When `seed` is an integer: RNG is fixed — output is fully reproducible
+    and identical calls return the cached result in O(1) time. Use seed=42
+    for the sandbox demo so repeated "Launch Dashboard" clicks are instant.
 
     Args:
         context:          Business domain (ecommerce_sales | server_load |
@@ -120,6 +148,8 @@ def generate_synthetic_data(
         trend_type:       Overall direction (aggressive_growth | stable | declining).
         days:             Length of the historical series (default 730 = 2 years).
         inject_anomalies: Whether to inject deliberate outlier events.
+        seed:             Optional fixed RNG seed for reproducible demo datasets.
+                          When provided, results are memoised in an 8-entry LRU cache.
 
     Returns:
         dict with keys:
@@ -127,10 +157,20 @@ def generate_synthetic_data(
           'context_meta'          — metadata dict for LLM prompting
           'injected_anomaly_dates'— dates where anomalies were injected
     """
+    # ── Cache lookup for deterministic (seeded) calls ─────────────────────────
+    if seed is not None:
+        cache_key = (context, trend_type, days, inject_anomalies, seed)
+        cached = _cache_get(cache_key)
+        if cached is not None:
+            return cached
+
     # ── Single isolated RNG for the entire generation ─────────────────────────
-    # Microsecond-clock seed → every function call is genuinely independent.
-    # NEVER touches np.random.<global> so forecast bootstrap stays reproducible.
-    rng = np.random.default_rng(int(time.time() * 1_000_000) % (2 ** 31))
+    # seed=None → microsecond clock (truly random every call)
+    # seed=int  → fixed seed (reproducible, cacheable)
+    if seed is not None:
+        rng = np.random.default_rng(seed)
+    else:
+        rng = np.random.default_rng(int(time.time() * 1_000_000) % (2 ** 31))
 
     config = TREND_CONFIGS.get(trend_type, TREND_CONFIGS["stable"])
     meta   = CONTEXT_META.get(context, CONTEXT_META["ecommerce_sales"])
@@ -182,8 +222,14 @@ def generate_synthetic_data(
         dates[i].strftime("%Y-%m-%d") for i in injected_anomaly_indices
     ]
 
-    return {
+    result = {
         "data":                   data,
         "context_meta":           meta,
         "injected_anomaly_dates": injected_anomaly_dates,
     }
+
+    # ── Store in cache for deterministic (seeded) calls ───────────────────────
+    if seed is not None:
+        _cache_set(cache_key, result)
+
+    return result

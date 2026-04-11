@@ -59,11 +59,13 @@ export default function Onboarding({ onDataReady, theme, onThemeToggle }) {
   }, [])
 
   // ── Sandbox handler ─────────────────────────────────────────────────────────
+  // seed=42 → backend caches the result by (context, trend, days, anomalies, seed)
+  // so the 2nd+ click with same settings returns in <1 ms from the server cache.
   const handleGenerate = async () => {
     setLoading(true); setError('')
     try {
       const res = await axios.post(`${API_BASE}/simulate`, {
-        context, trend_type: trend, inject_anomalies: injectAnomalies, days: 730,
+        context, trend_type: trend, inject_anomalies: injectAnomalies, days: 730, seed: 42,
       })
       onDataReady({ data: res.data.data, context_meta: res.data.context_meta, source: 'sandbox' })
     } catch {

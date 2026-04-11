@@ -1,424 +1,263 @@
 <div align="center">
 
-<img src="https://img.shields.io/badge/NatWest-Code%20for%20Purpose-d97706?style=for-the-badge" alt="NatWest Badge"/>
-<img src="https://img.shields.io/badge/Theme-Predictive%20Forecasting-f59e0b?style=for-the-badge" alt="Theme"/>
-<img src="https://img.shields.io/badge/Status-Live-22c55e?style=for-the-badge" alt="Status"/>
-<img src="https://img.shields.io/badge/Deep%20Learning-N--BEATS%20%2B%20PyTorch-34d399?style=for-the-badge" alt="Deep Learning"/>
-<img src="https://img.shields.io/badge/Live%20Stock-Yahoo%20Finance-6366f1?style=for-the-badge" alt="Live Stock"/>
+<img src="https://img.shields.io/badge/NatWest-Code%20for%20Purpose%202026-003D7B?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2Zy8+" alt="NatWest"/>
+<img src="https://img.shields.io/badge/Status-Live%20%26%20Deployed-22c55e?style=for-the-badge" alt="Live"/>
+<img src="https://img.shields.io/badge/Theme-AI%20Predictive%20Forecasting-f59e0b?style=for-the-badge" alt="Theme"/>
+<img src="https://img.shields.io/badge/License-Apache%202.0-6366f1?style=for-the-badge" alt="License"/>
 
 # 📊 ForecastIQ
 
-**Turn historical data into trustworthy short-term forecasts.**
+### *Predictive Analytics for Everyone — Not Just Data Scientists*
 
-🌐 [Live App](https://forecastiq-natwest.vercel.app/)&nbsp;·&nbsp;🔌 [API Docs](https://forecastiq-natwest.onrender.com/docs)&nbsp;·&nbsp;📦 [Quick Start](#install--run)
+> **Turn any time-series into trustworthy short-term forecasts with confidence intervals, anomaly detection, what-if scenarios, and AI summaries in plain English.**
+
+<br/>
+
+🌐 **[Live Demo](https://forecastiq-natwest.vercel.app/)** &nbsp;·&nbsp; 🔌 **[API Docs](https://forecastiq-natwest.onrender.com/docs)** &nbsp;·&nbsp; ⚡ **[Quick Start (3 commands)](#-quick-start)**
 
 </div>
 
 ---
 
-## The Problem
+## The Problem We're Solving
 
-Business teams need to plan ahead — for staffing, inventory, budgets, and capacity. But most forecasting tools are either too technical (Python notebooks, ARIMA tuning) or too opaque (black-box predictions with no confidence range).
+Business teams — procurement, operations, finance — need to plan weeks ahead. They're often stuck between two bad options:
 
-**ForecastIQ** provides a middle ground: a web-based tool that gives non-technical users honest short-term forecasts with clear uncertainty ranges, anomaly detection, what-if scenario modelling, and a conversational Q&A interface — all in plain English.
+- **Too technical:** Python notebooks, ARIMA tuning, manual feature engineering — inaccessible to non-experts
+- **Too simplistic:** Spreadsheet averages with no uncertainty range, no anomaly flags, no scenario modelling
 
----
-
-## How It Works
-
-The core idea is simple: **separate the maths from the language**.
-
-1. A **deterministic forecasting engine** (Python, NumPy, scikit-learn) computes all numbers — trend, seasonality, confidence intervals, anomalies, and a naive baseline for comparison.
-2. A **generative AI layer** (Gemini or Llama-3) receives only those verified numbers and translates them into business-friendly sentences.
-3. A **conversational Q&A tab** lets users ask free-form questions about the data — every answer is grounded in the same verified numbers, never hallucinated.
-
-The AI never invents figures. It only writes English around numbers that have already been calculated and validated. This prevents hallucinated statistics while still giving non-technical users an accessible summary.
+**ForecastIQ** sits exactly in the middle: a web tool that gives non-technical users **honest, mathematically rigorous forecasts** with clear uncertainty ranges, anomaly detection, what-if scenario modelling, and a conversational AI layer — all without writing a single line of code.
 
 ---
 
-## The Forecasting Model
+## ✅ How We Meet Every Problem Statement Requirement
 
-We implement a **decomposable time-series model** from first principles — the same mathematical framework used by Facebook Prophet, but built entirely with NumPy and scikit-learn so there are no C++ compilation requirements on the server.
+| Requirement | Our Implementation | Where to See It |
+|---|---|---|
+| *Predict likely values for future periods* | OLS + Fourier decomposition — 1 to 6 week forecasts | **📈 Forecast tab** |
+| *Show a range of outcomes, not just a single number* | Shaded 95% bootstrap confidence band that widens over time | **Forecast chart** |
+| *Compare against a simple baseline to avoid over-fitting* | 28-day rolling mean baseline plotted on every chart | **Pattern Breakdown card** |
+| *Detect early warning signs — sudden changes* | Anomalies flagged where actuals break the 95% CI band | **🚨 Anomalies tab** |
+| *Explain findings in non-technical language* | AI-generated 2–3 sentence summaries for every forecast | **Insight cards** |
+| *Suggest concrete next steps* | Each anomaly gives a one-sentence recommended action | **Anomaly detail view** |
+| *Highlight key patterns — trend, seasonality* | Decomposition card: trend slope %, seasonal amplitude | **Pattern Breakdown card** |
+| *Let users adjust growth rate* | Growth multiplier slider (0.1× to 5.0×) | **🎰 Scenario tab** |
+| *Remove recent outliers scenario* | Winsorization toggle that clips top/bottom 5% before fitting | **Scenario → Remove Outliers** |
+| *Apply flat or seasonal patterns* | Seasonality strength slider (0.1× to 3.0×) | **Scenario tab** |
+| *Side-by-side scenario comparisons* | Baseline vs scenario on same chart + AI summary of difference | **Scenario tab** |
+| *Keep experience lightweight and trustworthy* | Pure Python, no C++ deps, deterministic math + grounded AI | **Architecture** |
 
-### Core equation
+---
+
+## 🎬 Two-Minute Demo Path (for judges)
+
+> **No setup needed — the live app is at [forecastiq-natwest.vercel.app](https://forecastiq-natwest.vercel.app/)**
+
+1. **Open the app** → choose **🛒 E-commerce Sales** + **📈 Aggressive Growth** → click **Launch Dashboard →**
+2. On the **📈 Forecast** tab — see the 95% confidence band, naive baseline, and AI-generated insight
+3. Click the **🚨 Anomalies** tab → click any red dot for a 3-sentence AI explanation + recommended action
+4. Switch to **🎰 Scenario** → drag the growth slider to 1.25× and hit **Run Scenario**
+5. Go to **📈 Live Stock** on the home screen → load **NWG.L (NatWest Group)** for real market data
+6. Click **💬 Ask** → type *"When is the peak and how confident are you?"* — grounded AI answers live
+
+---
+
+## 🏗️ How It Works
 
 ```
-y(t) = g(t) + s(t) + ε
+User Browser (Vercel CDN)
+│
+│  Step 1 — Pick data source:
+│    🧪 Sample Data  →  /api/simulate   (seed=42, cached, instant)
+│    📈 Live Stock   →  /api/fetch-stock (yfinance → Yahoo Finance)
+│    📄 Upload CSV   →  /api/upload      (any ds/y CSV, ≥30 rows)
+│
+│  Step 2 — Dashboard loads in parallel:
+│    /api/forecast         →  Math results in ~0.3 s
+│    /api/forecast-insight →  LLM insight fires in parallel (non-blocking)
+│
+└───────────────────────────────────────────────────────────►
+
+FastAPI Backend (Render)
+│
+│  Deterministic Forecasting Engine (NumPy + scikit-learn)
+│    y(t) = g(t)  +  s(t)  +  ε
+│            │        │
+│            │        └─ Fourier Series seasonality
+│            │              Σ [aₙ cos(2πnt/P) + bₙ sin(2πnt/P)]
+│            │              Weekly:  period=7,  order=3
+│            │              Yearly:  period=365.25, order=5
+│            └─ OLS linear trend:  y = β₀ + β₁·t
+│
+│  Confidence Intervals
+│    Historical: 500-iteration vectorized bootstrap resampling
+│    Future CI:  grows as ŷ ± 1.96·σ·(1 + √(step/horizon))
+│
+│  Anomaly Detection
+│    Spike: y_actual > upper_band  →  flagged with pct_deviation
+│    Drop:  y_actual < lower_band  →  flagged with pct_deviation
+│
+│  AI Layer (grounded — zero hallucination by design)
+│    LLM receives:  fully pre-computed stats dict (no raw data)
+│    LLM produces:  English sentences around verified numbers only
+│    Primary:  Groq (Llama-3.3-70B) — no daily limits
+│    Fallback: Gemini 2.0 Flash — auto-switches on 429
+│
+│  N-BEATS Deep Learning (ICLR 2020)
+│    Pre-trained at startup on 60 synthetic series (~40 s)
+│    Compare Models tab: Classical vs N-BEATS on 20% holdout
+│    MAE / RMSE / MAPE → winner declared per dataset
+```
+
+---
+
+## 🔬 The Forecasting Model — From First Principles
+
+We implement a **decomposable time-series model** identical in concept to Facebook Prophet — but built entirely with NumPy and scikit-learn so there are no C++ compilation requirements anywhere in the stack.
+
+### Core Decomposition
+
+```
+y(t) = g(t)  +  s(t)  +  ε
 ```
 
 | Symbol | Component | Method |
 |---|---|---|
-| `g(t)` | **Trend** — overall direction | OLS linear regression: `y = β₀ + β₁·t` |
-| `s(t)` | **Seasonality** — repeating patterns | Fourier series: `Σ [aₙ cos(2πnt/P) + bₙ sin(2πnt/P)]` |
-| `ε` | **Residuals** — unexplained variance | Used for confidence interval estimation |
+| `g(t)` | **Trend** | OLS linear regression: `y = β₀ + β₁·t` |
+| `s(t)` | **Seasonality** | Fourier: `Σ [ aₙ cos(2πnt/P) + bₙ sin(2πnt/P) ]` |
+| `ε` | **Residuals** | Used for bootstrap CI estimation |
 
-### Why Fourier series for seasonality
-
-Most real-world metrics have multiple overlapping seasonal patterns (e.g. weekday vs weekend, summer vs winter). Fourier decomposition captures these as a sum of sine and cosine waves at different frequencies.
-
-We use **order-3 harmonics for weekly patterns** (period = 7) and **order-5 harmonics for annual patterns** (period = 365.25). The higher order for annual patterns captures more complex shapes like holiday spikes.
-
-The feature matrix for a single data point at time `t` looks like:
+The feature matrix per time step (17 features total):
 
 ```
-[t, cos(2π·1·t/7), sin(2π·1·t/7), cos(2π·2·t/7), sin(2π·2·t/7), ...,
-    cos(2π·1·t/365.25), sin(2π·1·t/365.25), ..., cos(2π·5·t/365.25), sin(2π·5·t/365.25)]
+[t,  cos(2π·1·t/7),   sin(2π·1·t/7),   ...  cos(2π·3·t/7),   sin(2π·3·t/7),   ← weekly (6)
+     cos(2π·1·t/365), sin(2π·1·t/365), ...  cos(2π·5·t/365), sin(2π·5·t/365)]  ← yearly (10)
 ```
 
-This gives us 1 trend feature + 6 weekly features + 10 yearly features = **17 features** per time step, all fitted via ordinary least squares.
+All 17 features fit in a single `LinearRegression().fit()` — transparent, interpretable, fast.
 
-### Confidence intervals
+### Why Fourier Over Moving Averages / Smoothing
 
-For historical data, we use **bootstrap resampling** (500 iterations) of the in-sample residuals to estimate the 95% confidence band around the fitted curve.
+| Method | Limitation | Our Upgrade |
+|---|---|---|
+| Moving average | Repeats past — can't model trend direction | `β₁·t` OLS term models growth/decline explicitly |
+| Exponential smoothing | Single-frequency only | Fourier captures weekly **and** yearly patterns simultaneously |
+| ARIMA | Requires manual (p,d,q) tuning | Auto-fits via OLS, zero hyperparameters |
 
-For future forecasts, we use a **growing uncertainty model** — the confidence interval widens with each step into the future:
+### Naive Baseline
+
+Every forecast runs a **28-day rolling mean** in parallel — the simplest possible "prediction". The chart plots it as a dotted grey line. The **Pattern Breakdown card** shows `model_vs_naive_%` — the empirical answer to *"is this model actually learning anything?"*
+
+```
+ŷ_naive(t) = mean(y[n-28 : n])   for all future t
+```
+
+### Growing Confidence Intervals
 
 ```
 CI(step) = ŷ ± 1.96 · σ_residual · (1 + √(step / horizon))
 ```
 
-This reflects the intuitive truth that predictions further into the future carry more uncertainty.
-
-### Naive baseline comparison
-
-To avoid over-fitting, every forecast is compared against a **naive baseline**: the 28-day rolling mean (4 complete weeks to eliminate day-of-week bias). This appears as a flat dotted grey line on the chart. The "Pattern Breakdown" card shows the model-vs-naive percentage — proving the model is actually learning patterns beyond a simple average.
-
-```
-ŷ_naive(t) = mean(y[n-28 : n-1])  for all future t
-```
-
-If the model can't meaningfully outperform this trivial baseline, it signals that the data may lack strong trend or seasonality — a useful diagnostic in itself.
-
-### Anomaly detection
-
-A historical data point is flagged as anomalous if it falls outside the 95% bootstrap confidence band:
-
-```
-y > upper_band → Spike (unexpected surge)
-y < lower_band → Drop  (unexpected crash)
-```
-
-Each anomaly records its direction, date, and percentage deviation. The AI generates **3 sentences** for each anomaly: what happened, the likely cause, and a **concrete next step** the team should take.
+Widens automatically to show that *next week is more predictable than next month* — making uncertainty intuitive without statistics jargon.
 
 ---
 
-## Architecture
+## 🤖 N-BEATS — Interpretable Deep Learning (ICLR 2020)
 
-```
-┌─────────────────────────────────────────────┐
-│         User's Browser (Vercel)             │
-│         React + Vite + Recharts             │
-│  ┌──────────┐ ┌──────────────────────────┐  │
-│  │Onboarding│ │        Dashboard         │  │
-│  │ Sandbox /│ │ Forecast / Anomalies /   │  │
-│  │CSV Upload│ │ Scenario / Compare Models│  │
-│  └──────────┘ │ Chat Q&A / Raw Data      │  │
-│               └──────────────────────────┘  │
-└────────────────────┬────────────────────────┘
-                     │ HTTPS (REST API)
-┌────────────────────▼────────────────────────┐
-│         FastAPI Backend (Render)             │
-│                                             │
-│  POST /api/simulate → Synthetic data gen    │
-│  POST /api/upload   → CSV parser            │
-│  POST /api/forecast → Full forecasting      │
-│    ├─ OLS + Fourier + Bootstrap CI          │
-│    ├─ Anomaly detection                     │
-│    ├─ Naive baseline comparison             │
-│    ├─ Accuracy metrics (MAE, RMSE, MAPE)    │
-│    └─ LLM insight (auto-fallback)           │
-│  POST /api/anomaly-insight → Per-anomaly AI │
-│  POST /api/scenario → What-if comparison    │
-│    ├─ Growth / seasonality multipliers      │
-│    └─ Remove outliers (winsorization)       │
-│  POST /api/model-comparison → Head-to-head   │
-│    ├─ Classical (OLS+Fourier) forecast       │
-│    ├─ N-BEATS (Interpretable DL) forecast    │
-│    ├─ MAE / RMSE / MAPE on holdout set       │
-│    ├─ Winner determination (lowest MAE)      │
-│    └─ AI comparison insight                  │
-│  POST /api/chat → Free-form Q&A             │
-│    └─ Grounded in verified stats only       │
-│                                             │
-│  LLM Router (model-agnostic + auto-fallback)│
-│    "groq"   → Llama-3.3-70B (default)      │
-│    "gemini" → Gemini 2.0 Flash              │
-│    on 429/quota → auto-fallback to Groq     │
-└─────────────────────────────────────────────┘
-```
-
-### Key design decisions
-
-**1. LLMs as translators, not calculators.** The LLM receives a fully numerical prompt — every figure comes from the deterministic engine. The LLM's only job is to convert those numbers into readable sentences. Switching between Gemini and Llama-3 changes only the writing style, not the data.
-
-**2. Auto-fallback on quota exhaustion.** If Gemini's free-tier quota is exceeded (429 error), the system silently retries the same prompt with Groq. Demos never fail — even when API limits are reached mid-presentation.
-
-**3. Grounded Q&A.** The chat feature sends the user's question alongside a complete snapshot of verified summary stats. The LLM is explicitly instructed: *"Answer using ONLY the facts provided. Do not invent numbers."*
-
----
-
-## Features
-
-| Feature | Description |
-|---|---|
-| **Data Simulator** | Generate realistic synthetic datasets (4 business contexts, 3 trend types, optional anomaly injection) on-the-fly — no real data required |
-| **CSV Upload** | Upload any time-series CSV with `ds` (date) and `y` (numeric) columns |
-| **Short-Term Forecast** | 1–6 week forecasts with shaded 95% confidence intervals |
-| **Naive Baseline** | 28-day rolling mean plotted alongside the forecast — proves the model beats a simple heuristic |
-| **Pattern Breakdown** | Dashboard card showing trend slope %, seasonal amplitude, and model-vs-naive comparison |
-| **Anomaly Detection** | Flags historical data points outside the bootstrap CI band, classified as spikes or drops with AI explanations and actionable next steps |
-| **Scenario Playground** | Interactive sliders for growth and seasonality multipliers, plus a "Remove Outliers" toggle (winsorization) — side-by-side baseline vs scenario |
-| **🧠 Compare Models** | Head-to-head comparison of Classical (OLS+Fourier) vs **N-BEATS** (Interpretable Deep Learning, ICLR 2020) — shows MAE, RMSE, MAPE on a 20% holdout set, declares a winner, and explains the result via AI |
-| **💬 Ask Tab** | Conversational Q&A grounded in verified data — ask anything about the forecast, trends, or anomalies |
-| **Multi-LLM Insights** | Switch between Gemini 2.0 Flash and Groq (Llama-3.3-70B) live — with auto-fallback on quota |
-| **Raw Data Explorer** | Searchable, sortable table with anomaly highlights, % deviation, and one-click CSV export |
-| **Dark / Light Mode** | Theme toggle with localStorage persistence; light mode default |
-
----
-
-## How It Maps to the Problem Statement
-
-| Requirement | Our Implementation |
-|---|---|
-| *"Predict likely values for future periods"* | ✅ 1–6 week forecast via OLS + Fourier decomposition |
-| *"Show a range of outcomes (not just a single number)"* | ✅ Shaded 95% confidence interval (bootstrap + horizon-scaled) |
-| *"Compare predictions to a simple baseline to avoid over-fitting"* | ✅ 28-day naive baseline plotted + model-vs-naive % displayed |
-| *"Detect early warning signs such as sudden changes"* | ✅ Anomalies flagged at spikes/drops outside CI band |
-| *"Provide explanations short enough for non-experts"* | ✅ AI-generated 2–3 sentence summaries in plain English |
-| *"Suggest next steps"* | ✅ Each anomaly insight includes a concrete recommended action |
-| *"Highlight key patterns (trend, seasonality)"* | ✅ Pattern Breakdown card: trend slope %, seasonal amplitude |
-| *"Let users test simple scenarios: adjust growth rate"* | ✅ Growth multiplier slider in Scenario Playground |
-| *"Remove recent outliers"* | ✅ Winsorization toggle: clips top/bottom 5% before fitting |
-| *"Apply flat or seasonal patterns"* | ✅ Seasonality strength slider (0.1× to 3.0×) |
-| *"Generate side-by-side comparisons"* | ✅ Baseline vs scenario lines on the same chart |
-| *"Summarize the difference clearly"* | ✅ AI-generated scenario comparison summary |
-| *"Keep the experience lightweight, trustworthy, and fast"* | ✅ Pure Python model, no C++ deps, auto-fallback on AI |
-
----
-
-## Output Examples
-
-These match the output format described in the problem statement:
-
-**Use Case 1 — Short-term forecast:**
-> Next 4 weeks: central estimate +3.4% growth. Lower bound: −31.2%. Upper bound: +38.1%. Peak expected in Week 2 (2026-04-18). Seasonal patterns show consistent weekday/weekend variation.
-
-**Use Case 2 — Anomaly detection:**
-> Yesterday's E-commerce Sales were unusually high (5,812.4 vs expected 3,200.1), a +81.6% deviation exceeding the forecast band. Potential driver: promotional campaign or viral referral event. Recommend: review order management logs for that date and verify fulfilment capacity.
-
-**Use Case 3 — Scenario comparison:**
-> Under a +20% growth scenario, end-of-period value is expected to reach 4,468 (vs 3,723 in baseline). Range: 2,972–5,964. The additional growth widens the confidence interval by 8%, reflecting higher volatility.
-
----
-
-## Design Rationale — Why This Approach
-
-### Why Fourier + OLS instead of simpler methods?
-
-The problem statement mentions **moving averages** and **exponential smoothing** as simple forecasting methods. We evaluated these but chose Fourier + OLS for specific reasons:
-
-| Method | Limitation | Why we upgraded |
-|---|---|---|
-| **Moving average** | Cannot model future trends — it only repeats past averages | Our OLS trend component (β₁·t) explicitly models growth/decline direction |
-| **Exponential smoothing** | Single-frequency — misses multi-period seasonality | Fourier captures both weekly AND yearly patterns simultaneously |
-| **ARIMA** | Requires manual tuning (p, d, q) — not accessible for non-experts | Our model auto-fits via OLS, zero hyperparameters |
-
-However, we kept the spirit of simplicity: our forecast is still a **single linear regression** under the hood — the feature engineering (Fourier terms) handles the complexity while the model itself stays transparent and interpretable.
-
-### When would a more advanced model be justified?
-
-Our model works well for **stable, seasonal data** with moderate trends. A more advanced approach (e.g. gradient-boosted trees, neural forecasters) would be justified when:
-- The data has **changepoints** (sudden trend breaks) that linear g(t) can't capture
-- The time series has **external regressors** (e.g. promotions, weather, pricing changes)
-- The dataset exceeds 10,000+ points where deep learning can find non-linear structure
-
-To answer this question empirically — not just theoretically — we built an **N-BEATS model** (see below) and let users run both on their own data. The winner changes by dataset, which is exactly the point.
-
-### N-BEATS — Interpretable Deep Learning (ICLR 2020)
-
-Alongside the classical model, we implement **N-BEATS** (Neural Basis Expansion Analysis for Interpretable Time Series Forecasting — Oreshkin et al., ICLR 2020). Both models share the same conceptual philosophy — decompose the series into trend + seasonality — but N-BEATS learns the decomposition from data rather than computing it analytically:
+We include a full **N-BEATS** (Neural Basis Expansion Analysis for Interpretable Time Series, Oreshkin et al., ICLR 2020) implementation in the **Compare Models** tab. Both models share the same decomposition philosophy — the difference is *how* they learn it:
 
 ```
 Input window (28 days)
-  → Trend Stack  [Block₁ → Block₂]
-  │   FC(128) × 4 + ReLU → theta_b, theta_f
-  │   backcast  = theta_b @ [1, t, t², t³]         (polynomial basis)
-  │   forecast  = theta_f @ [1, t, t², t³]
-  │   residual  = input − backcast  (doubly residual)
-  ↓
-  → Seasonality Stack  [Block₃ → Block₄]
-      FC(128) × 4 + ReLU → theta_b, theta_f
-      backcast  = theta_b @ [cos(2πkt/7), sin(2πkt/7), ...]  (Fourier basis)
-      forecast  = theta_f @ [cos(2πkt/7), sin(2πkt/7), ...]
-
-Final forecast = Σ trend forecasts + Σ seasonality forecasts
+  ↓ Trend Stack:     FC(64)×4 + ReLU → polynomial basis [1, t, t², t³]
+  ↓ Seasonality Stack: FC(64)×4 + ReLU → Fourier basis [cos/sin harmonics]
+Final forecast = Σ trend outputs + Σ seasonality outputs
 ```
 
-**Why N-BEATS beats 1D CNN for this problem:**
-- **Purpose-built for time series** — not adapted from image or audio tasks
-- **Interpretable:** trend and seasonality stacks produce readable decompositions matching Classical model logic
-- **Faster on CPU:** fully-connected layers are cheaper than convolutions on short 28-day windows
-- **Academic rigour:** ICLR 2020, widely cited in the forecasting literature
+**Confidence bands** via batched Monte Carlo Dropout — 20 stochastic forward passes in one batch call, 2.5th–97.5th percentile = 95% CI.
 
-**Confidence Intervals via Batched MC Dropout:** At inference time, we stack 20 copies of each forecast step into a single batch and call the model once — each row gets a different random dropout mask, producing 20 stochastic predictions simultaneously. The 2.5th and 97.5th percentiles form the 95% confidence band.
-
-**Holdout evaluation:** Trained once on the full dataset. MAE, RMSE, MAPE computed by evaluating the trained model on the last 20% of data in a single batch. The **Compare Models tab** shows which model wins on each specific dataset.
-
-**Performance (730-day dataset, 4-week forecast, CPU-only):**
+**Performance on CPU** (730-day dataset, 4-week forecast):
 
 | Step | Time |
 |---|---|
-| Training (20 epochs, batch=64, hidden=128) | ~1–3 s |
-| MC Dropout forecast (20 samples, batched) | < 0.5 s |
-| Holdout metric evaluation (batch) | < 0.1 s |
-| **Total end-to-end** | **~2–4 s** |
+| Pre-training at startup (60 series, 5 epochs) | ~40 s (background thread) |
+| Inference on user data | ~0.5 s |
+| Model comparison head-to-head | ~2–4 s total |
 
-### Forecast validation
-
-We validate our model against a **naive baseline** (28-day rolling mean) on every run, and against N-BEATS on the Compare Models tab:
-- If model_vs_naive_pct ≈ 0%, the model isn't adding value over a trivial forecast
-- If model_vs_naive_pct > 0%, the learned trend + seasonality are capturing real patterns
-- The **Compare Models** tab runs a full 80/20 train/holdout split for both models, computing MAE, RMSE, and MAPE — giving judges a rigorous, reproducible comparison.
+**Key finding:** On clean synthetic data, Classical (OLS+Fourier) often wins. On noisy stock data, N-BEATS sometimes edges ahead. The tab makes this comparison live and educational — not theoretical.
 
 ---
 
-## How We Address the Learning Outcomes
+## ⚡ Speed Engineering — Why the Dashboard is Fast
 
-The problem statement defines 3 learning areas participants should demonstrate:
+We spent significant effort making every user interaction feel immediate:
 
-### 1. Ways to look ahead — and how to judge if the approach helps
+| Optimization | Result |
+|---|---|
+| **`seed=42` deterministic caching** | Sandbox `/simulate` cached after 1st call — sub-millisecond repeated reads |
+| **Parallel forecast + LLM** | `/api/forecast` returns math (~0.3 s), LLM insight fires in parallel (non-blocking) |
+| **Vectorized bootstrap CI** | 500-iteration CI computed in <50 ms — single `rng.choice(size=(500,n))` matrix op |
+| **N-BEATS background pre-training** | Trained at startup in a daemon thread — Compare Models is instant when you need it |
+| **N-BEATS in-memory cache** | MD5-keyed per dataset, 30-min TTL, max 5 entries — cached runs <0.05 s |
+| **Backend /ping warm-up** | Frontend pings the Render instance on page load, eliminating cold-start during demo |
+| **Isolated RNG** | No global NumPy state mutation — forecast bootstrap stays reproducible every run |
 
-- **How it works:** Our model decomposes time series into trend (OLS) + seasonality (Fourier) + noise — a well-established approach used in production at companies like Meta (Facebook Prophet uses the same framework).
-- **When more advanced models are justified:** We don't just theorise — we **demonstrate it live**. The 🧠 Compare Models tab runs both a Classical OLS+Fourier model and **N-BEATS** (Interpretable DL, ICLR 2020) on the user's actual data, compares their MAE/RMSE/MAPE on a held-out 20% test set, and declares a winner per dataset. Users see directly when deep learning outperforms classical methods — and when it doesn't.
-- **How to validate:** Three complementary validation signals: (1) naive baseline comparison on every forecast, (2) holdout MAE/RMSE/MAPE in the Compare Models tab, (3) AI-generated plain-English explanation of *why* one model outperformed.
-
-### 2. Why simple comparisons matter
-
-- **Baseline as sanity check:** The dotted grey naive baseline line on every chart ensures judges (and users) can immediately see whether the model is actually useful.
-- **"Pattern Breakdown" card:** Shows model_vs_naive_pct — a single number that answers "is this model worth using?" If close to 0%, the simple average is just as good.
-- **Classical vs N-BEATS head-to-head:** The Compare Models tab (🧠) shows a proper side-by-side: both forecast lines on the same chart, a metrics table (MAE / RMSE / MAPE), a winner badge, and an AI explanation of the result.
-- **Simple models often win:** On synthetic data with clean seasonality, Classical (OLS+Fourier) typically beats N-BEATS — demonstrating that advanced ≠ always better. On noisier or non-linear data, N-BEATS wins. The tab makes this visible and educational.
-
-### 3. Communicating uncertainty effectively
-
-- **Uncertainty is information, not error:** The shaded 95% confidence band doesn't mean "the model might be wrong." It means "here's the honest range of likely outcomes." This reframing helps users make better decisions.
-- **Growing CI for future forecasts:** The band widens over time — visually communicating that next week is more predictable than next month. This is intuitive even for non-technical audiences.
-- **MC Dropout CI for N-BEATS:** The N-BEATS model uses Monte Carlo Dropout (20 batched inference passes with dropout active) to produce its uncertainty bands — a principled Bayesian approximation shown alongside the classical bootstrap CI.
-- **Range format in AI summaries:** Every AI insight mentions the confidence range explicitly (e.g. "95% range: 2,476 – 4,971") so the user always sees the spread, not just a single number.
-- **How we make ranges intuitive:** We use a shaded gradient on the chart (not just error bars), label it clearly in the stat cards ("95% probability band"), and the AI writes about it in natural language. Non-technical users understand "the forecast could range from X to Y" far better than "σ = 234.5."
+> **Render free-tier note:** Free services sleep after 15 min of inactivity. The first request after sleep takes ~30 s to wake up (shown as a banner in the UI). After that, all operations are fast.
 
 ---
 
-## Engineering Highlights
+## 📤 CSV Upload
 
-These implementation decisions go beyond the minimum requirements and reflect production-grade engineering thinking:
+Upload any time-series CSV to run the full forecasting pipeline on your own data.
 
-### 1. Grounded AI — zero hallucination by design
+**Required format (minimum 30 rows):**
 
-The LLM is never given raw data or asked to reason about numbers itself. It receives a fully pre-computed summary dict and is instructed to write **only English around those verified figures**. Switching from Gemini to Llama-3 changes the writing style, not the data. This eliminates the most common failure mode in AI-assisted analytics tools.
-
-### 2. Isolated RNG — reproducible forecasts, truly random simulations
-
-The bootstrap CI previously called `np.random.seed(42)`, which silently poisoned the global NumPy random state. Every synthetic dataset generated *after* a forecast would produce anomalies at identical positions, making demos look broken. Fixed with `np.random.default_rng(42)` — an isolated generator with zero global side-effects. The simulator also uses a microsecond-time-seeded RNG for genuine randomness on every call.
-
-### 3. N-BEATS in-memory model cache
-
-N-BEATS trains on each user's specific dataset. On first use, training takes ~3-5s on CPU. On all subsequent requests with the same data, the trained model is served from a module-level dict (keyed by MD5 of the input array) with a 30-minute TTL. Re-runs of Compare Models are instant (<0.05s). Cache is bounded to 5 entries to stay within Render's 512 MB free-tier memory.
-
-### 4. Decoupled LLM pipeline — instant dashboard render
-
-The `/api/forecast` endpoint returns pure mathematical results immediately (~0.3s). The LLM insight is fetched separately via `/api/forecast-insight` fired in parallel. The dashboard renders with full chart data before the AI summary arrives, which then fades in. This eliminated what was a 4-6 second blocking load on every page launch.
-
-### 5. Vectorized bootstrap CI — 30-50× speedup
-
-The original bootstrap used a Python for-loop over 500 iterations. Replaced with a single `rng.choice(..., size=(500, n))` matrix operation — the entire sample matrix is built in one NumPy call. The confidence band now computes in **<50ms** regardless of dataset size.
-
-### 6. N-BEATS background pre-training — always warm for inference
-
-N-BEATS (ICLR 2020) is pre-trained on a diverse synthetic corpus (60 series × 730 days) in a **daemon background thread** launched at server startup. This runs in ~40s while the server is already handling requests. The pretrained weights are held in memory (no disk I/O). Any future endpoint or analysis needing N-BEATS inference skips training entirely and loads the weights in ~0.1s. Falls back gracefully to on-demand training if queried before pretrain finishes. Check `/pretrain-status` to confirm readiness.
-
-The **Forecast tab's Pattern Breakdown card** already demonstrates the key model validation story: the OLS+Fourier model's forecast is compared against a 28-day naive rolling average on every dataset, showing the percentage improvement over a trivial baseline — directly covering Hackathon Learning Outcome #2.
-
----
-
-## Tech Stack
-
-| Layer | Technology | Rationale |
-|---|---|---|
-| **Frontend** | React 18, Vite | Fast HMR, lightweight production bundles |
-| **Charts** | Recharts | Supports shaded confidence bands and interactive tooltips |
-| **Styling** | Vanilla CSS (DM Sans + DM Mono) | Full control, no framework lock-in |
-| **Backend** | Python 3.11, FastAPI | Async, auto-generated OpenAPI docs |
-| **Classical Forecast** | NumPy, scikit-learn | Pure Python OLS+Fourier — no C++ compilation required |
-| **Deep Learning Forecast** | PyTorch (CPU) | N-BEATS (ICLR 2020): Trend + Seasonality stacks, MC Dropout CI, hidden=64, epochs=8; in-memory cache (30 min TTL) makes re-runs instant |
-| **Data Generation** | NumPy (Fourier series) | Realistic synthetic data, zero privacy risk |
-| **Live Market Data** | yfinance + Yahoo Finance | Real stock price history — NWG.L (NatWest), AAPL, TSLA, ^FTSE, etc. |
-| **AI — Groq (default)** | `groq` SDK | Llama-3.3-70B at ultra-low latency, no quota limits |
-| **AI — Gemini** | `google-generativeai` SDK | gemini-2.0-flash, with auto-fallback to Groq on 429 |
-| **Deployment** | Render (backend) + Vercel (frontend) | Free-tier, CI/CD from GitHub |
-
----
-
-## Project Structure
-
-```
-ForecastIQ/
-├── README.md
-├── render.yaml                         # Render deployment config
-├── .gitignore
-│
-├── backend/
-│   ├── .python-version                 # Pins Python 3.11.9 for Render
-│   ├── requirements.txt
-│   ├── .env.example
-│   └── src/
-│       ├── main.py                     # FastAPI entry point + CORS
-│       ├── api/
-│       │   └── routes.py               # REST endpoint definitions
-│       └── services/
-│           ├── data_simulator.py       # Synthetic data (Fourier + phase-randomised RNG)
-│           ├── forecasting.py          # Core model (OLS + Bootstrap CI + MAE/RMSE/MAPE)
-│           ├── nbeats_forecasting.py   # N-BEATS (PyTorch, ICLR 2020, in-memory cache, MC Dropout CI)
-│           ├── nbeats_pretrain.py      # Background pretrain on 60-series corpus at server startup
-│           └── llm_service.py          # LLM router (Groq/Gemini auto-fallback, comparison insight)
-│   └── tests/
-│       └── test_forecasting.py         # 11 test assertions
-│
-└── frontend/
-    ├── index.html
-    ├── package.json
-    ├── .env.production                 # Production backend URL
-    └── src/
-        ├── main.jsx
-        ├── App.jsx                     # Root: theme + routing state
-        ├── index.css                   # Design system (dark + light)
-        └── components/
-            ├── Onboarding/             # Data input: sandbox or CSV
-            ├── Dashboard/              # Main analytics layout
-            ├── Charts/
-            │   ├── ForecastChart.jsx    # Recharts + CI band + naive baseline line
-            │   ├── AnomalyPanel.jsx     # Anomaly table + AI explanations
-            │   ├── ScenarioPlayground.jsx # What-if + remove outliers + AI summary
-            │   ├── ChatPanel.jsx        # Free-form Q&A grounded in verified stats
-            │   └── DataExplorer.jsx     # Filterable table + CSV export
-            └── Shared/
-                ├── NavBar.jsx           # Model selector + theme toggle
-                └── InsightCard.jsx      # AI-generated insight display
+```csv
+ds,y
+2024-01-01,1200.50
+2024-01-02,1345.20
+2024-01-03,980.75
 ```
 
+A ready-to-use **sample CSV** (`sample_upload.csv`) is included in the repository root — 365 days of synthetic retail data with injected spikes and drops for anomaly detection demo purposes. Upload it directly to test the CSV workflow end-to-end.
+
 ---
 
-## Install & Run
+## 🌐 Live Stock Data
+
+Fetch real historical stock prices from Yahoo Finance and run the full pipeline on live market data:
+
+| Ticker | Description |
+|---|---|
+| **NWG.L** | NatWest Group — London Stock Exchange (GBp) |
+| **AAPL** | Apple Inc. — NASDAQ (USD) |
+| **TSLA** | Tesla Inc. — NASDAQ (USD) |
+| **^FTSE** | FTSE 100 Index |
+| **^GSPC** | S&P 500 Index |
+
+Or enter any Yahoo Finance symbol. Supports 1-year, 2-year, or 5-year history windows.
+
+> 🔒 **Privacy:** Stock prices are publicly available market data. No user data is stored, logged, or transmitted.
+
+---
+
+## ⚡ Quick Start
+
+> **Three terminal commands from a fresh clone to a running app.**
 
 ### Prerequisites
 
-- Python 3.11+
-- Node.js 18+
-- At least one free API key:
-  - [Groq Console (Llama-3)](https://console.groq.com/keys) — **recommended, no daily limits**
-  - [Google AI Studio (Gemini)](https://aistudio.google.com/apikey) — optional, has free-tier quota
+- Python 3.11+  
+- Node.js 18+  
+- A free API key from [Groq Console](https://console.groq.com/keys) (takes 30 seconds, no credit card)
 
-### Backend
+### 1. Clone
+
+```bash
+git clone https://github.com/your-username/forecastiq-natwest.git
+cd forecastiq-natwest
+```
+
+### 2. Backend
 
 ```bash
 cd backend
@@ -432,152 +271,217 @@ source .venv/bin/activate
 
 pip install -r requirements.txt
 cp .env.example .env
-# Edit .env — add your GROQ_API_KEY (required) and optionally GEMINI_API_KEY
+# Open .env and add: GROQ_API_KEY=your_key_here
 
-uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+uvicorn src.main:app --reload --port 8000
 ```
 
-API at `http://localhost:8000` · Docs at `http://localhost:8000/docs`
+API: `http://localhost:8000` · Interactive docs: `http://localhost:8000/docs`
 
-### Frontend
+### 3. Frontend
 
 ```bash
+# In a new terminal tab:
 cd frontend
 npm install
 cp .env.example .env
-# Edit .env → VITE_API_URL=http://localhost:8000/api
+# .env already contains: VITE_API_URL=http://localhost:8000/api
 
 npm run dev
 ```
 
-App at `http://localhost:5173`
+App: `http://localhost:5173`
+
+> **That's it.** No Docker, no database, no build step. The backend starts serving `/ping` in under 3 seconds.
 
 ---
 
-## Usage
+## 🗂️ Project Structure
 
-### Quick demo (no data required)
-
-1. Open the app → **Onboarding** screen
-2. Select a business context (e.g. E-commerce Sales)
-3. Choose a trend direction and toggle anomaly injection
-4. Click **Launch Dashboard →**
-
-### Live Stock Data (NEW)
-
-Fetch real historical stock prices directly from Yahoo Finance:
-
-1. Click the **📈 Live Stock** tab on the onboarding screen
-2. Select a popular ticker or type any Yahoo Finance symbol:
-   - **NWG.L** — NatWest Group (London Stock Exchange, GBp)
-   - **AAPL** — Apple Inc. (NASDAQ, USD)
-   - **TSLA** — Tesla Inc. (NASDAQ, USD)
-   - **^FTSE** — FTSE 100 Index
-   - **^GSPC** — S&P 500 Index
-3. Choose 1-year, 2-year, or 5-year history
-4. Click **Load Stock Data →** — the full dashboard runs on real market data
-
-> **Privacy note:** Stock prices are publicly available market data from Yahoo Finance. No user data is stored or transmitted. The endpoint is read-only.
-
-> **Honest disclaimer shown in-app:** Financial markets are inherently volatile — confidence intervals will be wider than for operational business metrics. Past price patterns do not guarantee future performance.
-
-### On the dashboard
-
-| Tab | What it shows |
-|---|---|
-| **📈 Forecast** | Line chart with 95% CI band, naive baseline (dotted grey), and AI insight. **Pattern Breakdown card** shows: trend slope, seasonal amplitude, naive baseline end value, and **Model vs Naive %** — empirically proving the model beats a trivial 28-day rolling average on every dataset |
-| **🚨 Anomalies** | Detected spikes and drops — click any row for a 3-sentence AI explanation with recommended next steps |
-| **🎰 Scenario** | Growth &amp; seasonality sliders + Remove Outliers toggle. Baseline vs scenario comparison + AI summary |
-| **💬 Ask** | Chat Q&amp;A — ask anything about the forecast data. 5 suggested questions for quick demos. All answers grounded in verified stats |
-| **📊 Raw Data** | Full data table with search, sort, anomaly highlights, and CSV export |
-
-Switch AI models from the navbar. Toggle dark/light mode with the ☀/☽ button.
-
-### CSV upload format
-
-```csv
-ds,y
-2024-01-01,1200.5
-2024-01-02,1345.2
 ```
-
-Minimum 30 rows. Dates in YYYY-MM-DD format.
+forecastiq-natwest/
+│
+├── README.md
+├── render.yaml                      # Zero-config Render deployment
+├── sample_upload.csv                # 365-day demo CSV for upload testing
+│
+├── backend/
+│   ├── .python-version              # Pins Python 3.11 for Render
+│   ├── requirements.txt
+│   ├── .env.example                 # Copy → .env, add GROQ_API_KEY
+│   └── src/
+│       ├── main.py                  # FastAPI app + CORS + startup pre-training
+│       ├── api/
+│       │   └── routes.py            # All REST endpoints
+│       └── services/
+│           ├── data_simulator.py    # Fourier synthetic data + seed caching
+│           ├── forecasting.py       # OLS + Bootstrap CI + anomaly detection
+│           ├── nbeats_forecasting.py # N-BEATS (ICLR 2020) + MC Dropout CI
+│           ├── nbeats_pretrain.py   # Background pre-training at startup
+│           └── llm_service.py       # Groq/Gemini router with auto-fallback
+│
+└── frontend/
+    ├── index.html
+    ├── package.json
+    ├── .env.example
+    └── src/
+        ├── App.jsx                  # Root state, theme
+        ├── index.css                # Design system (dark + light)
+        └── components/
+            ├── Onboarding/          # Data source picker (Sandbox / Stock / CSV)
+            ├── Dashboard/           # Main analytics layout
+            ├── Charts/
+            │   ├── ForecastChart.jsx     # Recharts + CI band + naive baseline
+            │   ├── AnomalyPanel.jsx      # Anomaly table + AI per-anomaly insights
+            │   ├── ScenarioPlayground.jsx # What-if sliders + side-by-side chart
+            │   ├── ModelComparison.jsx   # Classical vs N-BEATS head-to-head
+            │   ├── ChatPanel.jsx         # Grounded Q&A — verified stats only
+            │   └── DataExplorer.jsx      # Searchable table + CSV export
+            └── Shared/
+                ├── NavBar.jsx            # Model selector + theme toggle
+                └── InsightCard.jsx       # AI insight display
+```
 
 ---
 
-## Tests
+## 🌍 Environment Variables
 
-```bash
-cd backend
-pytest tests/ -v
+**Backend** (`backend/.env`):
+
+```env
+GROQ_API_KEY=your_groq_key_here       # Required — fast, no daily limits
+GEMINI_API_KEY=your_gemini_key_here   # Optional — auto-fallback from Groq on 429
 ```
 
-11 test assertions covering data generation, forecast structure, anomaly detection, scenario comparison, and summary statistics shape.
+**Frontend** (`frontend/.env`):
 
----
-
-## Environment Variables
-
-### Backend (`backend/.env`)
-
-```
-GROQ_API_KEY=your_key_here      # Required — default model
-GEMINI_API_KEY=your_key_here    # Optional — auto-fallback if quota exceeded
-```
-
-### Frontend (`frontend/.env`)
-
-```
+```env
 VITE_API_URL=http://localhost:8000/api
 ```
 
-> `.env` files are gitignored. Only `.env.example` and `.env.production` are tracked.
+> `.env` files are gitignored. Only `.env.example` files are tracked. **Never commit API keys.**
 
 ---
 
-## Deployment
+## 🚀 Deployment
 
-> **Live now:**
+> **Already live:**
 > - Frontend: [forecastiq-natwest.vercel.app](https://forecastiq-natwest.vercel.app/)
 > - Backend API: [forecastiq-natwest.onrender.com](https://forecastiq-natwest.onrender.com)
 > - API Docs: [forecastiq-natwest.onrender.com/docs](https://forecastiq-natwest.onrender.com/docs)
 
-### Backend → Render
+### Deploy Your Own
 
-This repo includes `render.yaml` and `backend/.python-version` for zero-config deployment.
+**Backend → Render** (free tier):
+1. Connect this repo on [render.com](https://render.com) → New Web Service
+2. Add `GROQ_API_KEY` (+ optionally `GEMINI_API_KEY`) in Render's Environment tab
+3. Deploy — `render.yaml` pre-configures build and start commands
 
-1. Create a Web Service on [render.com](https://render.com) and connect this repository
-2. Set `GROQ_API_KEY` and `GEMINI_API_KEY` in the Render environment
-3. Deploy — build and start commands are pre-configured
-
-> Free-tier services sleep after 15 min of inactivity. First request after sleep takes ~30s.
-
-### Frontend → Vercel
-
-1. Import this repo on [vercel.com](https://vercel.com)
-2. Set root directory to `frontend`, framework preset to Vite
-3. Add `VITE_API_URL=https://forecastiq-natwest.onrender.com/api`
+**Frontend → Vercel** (free):
+1. Import repo on [vercel.com](https://vercel.com)
+2. Root directory: `frontend`, Framework: Vite
+3. Add `VITE_API_URL=https://your-render-url.onrender.com/api`
 4. Deploy
 
 ---
 
-## Known Limitations
+## 🧪 Tests
 
-- CSV upload supports only two columns: `ds` (date) and `y` (numeric)
-- Forecasting accuracy degrades below 90 data points
-- Model comparison requires at least 60 data points (needs a meaningful holdout set)
-- Gemini free-tier has daily quota limits — Groq is used as default to avoid this
-- Bootstrap CI is vectorized and runs in <50ms; no longer a bottleneck
-- N-BEATS first run takes ~3-5s on CPU; subsequent runs with same data are instant (cached)
-- Free-tier Render backend has cold-start delays (~30s after 15 min inactivity) — open the app a minute before your demo
+```bash
+cd backend
+# activate your venv first, then:
+pip install pytest
+pytest tests/ -v
+```
+
+11 assertions covering: data generation, forecast structure, anomaly detection, scenario comparison, and summary stats shape.
 
 ---
 
-## License & Compliance
+## 🧠 Grounded AI — Zero Hallucination by Design
 
-Submitted under the **Apache License 2.0** in compliance with NatWest Code for Purpose hackathon rules and DCO requirements. All commits are signed off with a single email identity.
+The most important engineering decision in this project:
 
-All data used in this project is **synthetically generated** using NumPy. No real, personal, or proprietary data is used or stored.
+**The LLM never sees raw data. It never does arithmetic.**
+
+Every AI insight is generated from a pre-computed `summary_stats` dict:
+
+```python
+{
+  "current_value": 3247.5,
+  "forecast_end_value": 3421.2,
+  "forecast_end_lower": 2891.0,
+  "forecast_end_upper": 3951.4,
+  "growth_pct_over_period": 5.3,
+  "peak_predicted_date": "2026-04-18",
+  "anomaly_count": 6,
+  "trend_slope_pct": 12.4,
+  ...
+}
+```
+
+The LLM prompt says: *"Write exactly 3 sentences using ONLY the numbers below. Do not invent or assume any figures."*
+
+This eliminates the most common failure mode in AI analytics tools — hallucinated statistics — while still making the output accessible to non-technical users.
+
+---
+
+## 📚 How We Address the Learning Outcomes
+
+### 1. Ways to look ahead — and how to judge if the approach helps
+
+- Classical OLS+Fourier gives an analytical, fully interpretable forecast
+- N-BEATS (ICLR 2020) gives a learned decomposition for comparison
+- **Compare Models** tab runs both on the actual user dataset with MAE/RMSE/MAPE on a 20% holdout — users see empirically which approach works better for their data
+
+### 2. Why simple comparisons matter
+
+- 28-day naive baseline is computed and plotted on **every** forecast — not just the comparison tab
+- `model_vs_naive_%` in the Pattern Breakdown card gives a single number: "is this model adding value over a rolling average?"
+- Classical often beats N-BEATS on clean seasonal data — the tool shows this honestly
+
+### 3. Communicating uncertainty effectively
+
+- Shaded confidence band (not error bars) makes ranges intuitive
+- Band widens visually as the forecast extends further — communicating *future = less certain*
+- Every AI insight explicitly states the 95% range in natural language
+- N-BEATS uses MC Dropout (20 stochastic passes batched) for its bands — a principled Bayesian approximation
+
+---
+
+## 📋 Tech Stack
+
+| Layer | Technology | Why |
+|---|---|---|
+| Frontend | React 18, Vite | Fast HMR, minimal bundle |
+| Charts | Recharts | Shaded CI bands + interactive tooltips |
+| Styling | Vanilla CSS (DM Sans + DM Mono) | Zero framework lock-in |
+| Backend | Python 3.11, FastAPI | Async, auto OpenAPI docs |
+| Forecasting | NumPy, scikit-learn | Pure Python OLS+Fourier, no C++ required |
+| Deep Learning | PyTorch (CPU) | N-BEATS ICLR 2020, in-memory cache |
+| Live Data | yfinance | Yahoo Finance — public market data |
+| AI (default) | Groq SDK | Llama-3.3-70B — no daily quota limits |
+| AI (optional) | google-generativeai | Gemini 2.0 Flash — auto-fallback on 429 |
+| Backend hosting | Render | Free tier, CI/CD from GitHub |
+| Frontend hosting | Vercel | CDN, instant deploys from GitHub |
+
+---
+
+## ⚠️ Known Limitations
+
+- CSV upload requires exactly two columns: `ds` (YYYY-MM-DD date) and `y` (numeric)
+- Forecast accuracy degrades below 90 data points
+- Model comparison tab requires ≥60 data points (needs a meaningful holdout)
+- Render free-tier cold starts (~30 s after 15 min idle) — open the app a minute before a live demo
+- Financial time-series (stock data) have wider confidence intervals by nature — this is accurate, not a bug
+
+---
+
+## 📄 License & Compliance
+
+Released under **Apache License 2.0** in compliance with NatWest Code for Purpose hackathon rules and DCO requirements. All commits signed off under a single author identity.
+
+All synthetic data is generated locally using NumPy — no real, personal, proprietary, or financial data is stored or transmitted by this application.
 
 ---
 
@@ -585,6 +489,6 @@ All data used in this project is **synthetically generated** using NumPy. No rea
 
 **Built for NatWest Code for Purpose India Hackathon 2026**
 
-*Making data-driven decisions accessible — not just to data scientists.*
+*Making data-driven forecasting accessible — not just to data scientists.*
 
 </div>
