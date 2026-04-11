@@ -30,21 +30,20 @@ const ComparisonTooltip = ({ active, payload, label }) => {
 }
 
 /**
- * ModelComparison — Classical (OLS+Fourier) vs N-BEATS head-to-head.
+ * ModelComparison — Classical (OLS+Fourier) vs Naive Baseline.
  *
- * Both models share the same conceptual approach: decompose the time series
- * into trend + seasonality. The difference:
- *   Classical  → uses analytical equations (OLS regression + Fourier series)
- *   N-BEATS    → learns the decomposition end-to-end from data (ICLR 2020)
+ * Directly addresses Hackathon Learning Outcome #2:
+ * "Why simple comparisons matter when testing ideas"
+ *   - Baseline forecasts provide a sanity check
+ *   - Accuracy can be misleading without a reference
+ *   - Simple models often outperform overly complex ones
  *
- * The tab empirically demonstrates Hackathon Learning Outcome #1:
- * "When more advanced models are justified" — shown on the user's own data,
- * not just stated in a README.
+ * Both signals are computed analytically — no ML training, instant response.
  */
 export default function ModelComparison({ data, forecastWeeks, contextLabel, selectedModel }) {
   const [comparison, setComparison] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError]   = useState('')
+  const [loading, setLoading]       = useState(false)
+  const [error, setError]           = useState('')
 
   const fetchComparison = useCallback(async () => {
     setLoading(true)
@@ -66,52 +65,48 @@ export default function ModelComparison({ data, forecastWeeks, contextLabel, sel
 
   useEffect(() => {
     if (data?.length >= 60) fetchComparison()
-  }, []) // run once on mount; user can refresh manually
+  }, []) // run once on mount
 
-  // ── Model config ─────────────────────────────────────────────────────────
+  // ── Model config ───────────────────────────────────────────────────────────
   const MODELS = [
     {
-      key: 'classical',
-      label: 'Classical (OLS + Fourier)',
+      key:   'classical',
+      label: 'OLS + Fourier (Classical)',
       emoji: '📐',
       color: '#f59e0b',
-      desc: 'Analytical decomposition: Linear trend via OLS + Fourier seasonality. Instant — no training required. Fully interpretable and mathematically exact.',
+      desc:  'Analytical decomposition: Linear trend via OLS regression + Fourier series for seasonality. Instant — no training required. Fully interpretable and mathematically exact.',
     },
     {
-      key: 'nbeats',
-      label: 'N-BEATS (Interpretable DL)',
-      emoji: '🧠',
-      color: '#34d399',
-      desc: 'Learned decomposition: Trend Stack + Seasonality Stack, each using the same polynomial/Fourier bases — but coefficients are learned from data via doubly-residual backpropagation. ICLR 2020.',
+      key:   'naive',
+      label: 'Naive Baseline (28-day Avg)',
+      emoji: '📏',
+      color: '#94a3b8',
+      desc:  'The simplest possible forecast — a flat rolling average of the last 28 days. Used as a sanity check: if our model cannot beat this, it is not learning anything useful.',
     },
   ]
 
-  // ── Build chart data ──────────────────────────────────────────────────────
+  // ── Build chart data ───────────────────────────────────────────────────────
   const buildChartData = () => {
     if (!comparison) return []
     const cf    = comparison.classical?.forecast || []
-    const nb    = comparison.nbeats?.forecast    || []
     const naive = comparison.naive_baseline       || []
-    const maxLen = Math.max(cf.length, nb.length)
+    const maxLen = Math.max(cf.length, naive.length)
     return Array.from({ length: maxLen }, (_, i) => ({
-      ds:              cf[i]?.ds || nb[i]?.ds,
+      ds:              cf[i]?.ds || naive[i]?.ds,
       classical:       cf[i]?.yhat,
       classical_lower: cf[i]?.yhat_lower,
       classical_upper: cf[i]?.yhat_upper,
-      nbeats:          nb[i]?.yhat,
-      nbeats_lower:    nb[i]?.yhat_lower,
-      nbeats_upper:    nb[i]?.yhat_upper,
       naive:           naive[i]?.yhat_naive,
     }))
   }
 
-  // ── Loading ───────────────────────────────────────────────────────────────
+  // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="glass-card comparison-loading">
-        <div className="pulse-icon">🧠</div>
-        <p>Running Classical vs N-BEATS on your dataset…</p>
-        <p className="sub">Training N-BEATS (Interpretable DL) — ~5–10 seconds on first run</p>
+        <div className="pulse-icon">📐</div>
+        <p>Running Classical vs Naive Baseline comparison…</p>
+        <p className="sub">Pure analytics — no training needed, almost instant</p>
         <div className="spinner" style={{ width: '32px', height: '32px', borderWidth: '3px' }} />
       </div>
     )
@@ -130,7 +125,7 @@ export default function ModelComparison({ data, forecastWeeks, contextLabel, sel
     )
   }
 
-  // ── Not enough data ───────────────────────────────────────────────────────
+  // ── Not enough data ────────────────────────────────────────────────────────
   if (!data || data.length < 60) {
     return (
       <div className="glass-card" style={{ padding: '32px', textAlign: 'center' }}>
@@ -152,26 +147,26 @@ export default function ModelComparison({ data, forecastWeeks, contextLabel, sel
   return (
     <div className="comparison-container fade-in">
 
-      {/* ── Winner Banner ─────────────────────────────────────────────────── */}
+      {/* ── Winner Banner ───────────────────────────────────────────────────── */}
       <div className="glass-card winner-banner">
         <div className="trophy">🏆</div>
         <div className="winner-info">
           <h3>{winnerModel.emoji} {winnerModel.label} wins on this dataset</h3>
           <p>
-            Measured by lowest MAE on a held-out 20% test set.
-            The winner varies by dataset — which is exactly what {' '}
-            <em>"knowing when more advanced models are justified"</em> means in practice.
+            Measured by lowest MAE on a held-out 20% test set.{' '}
+            {winner === 'classical'
+              ? 'Our model beats the naive baseline — it is genuinely learning patterns from the data.'
+              : 'The naive baseline is competitive here — a signal to investigate the data further.'}
           </p>
         </div>
       </div>
 
-      {/* ── Two Model Cards ───────────────────────────────────────────────── */}
+      {/* ── Two Model Cards ─────────────────────────────────────────────────── */}
       <div className="metrics-grid">
         {MODELS.map(m => {
-          const metrics = comparison[m.key]?.accuracy_metrics || {}
-          const stats   = comparison[m.key]?.summary_stats    || {}
+          const metrics  = comparison[m.key]?.accuracy_metrics || {}
+          const stats    = comparison[m.key]?.summary_stats    || {}
           const isWinner = winner === m.key
-          const failed  = !comparison[m.key]?.forecast?.length
 
           return (
             <div
@@ -191,42 +186,39 @@ export default function ModelComparison({ data, forecastWeeks, contextLabel, sel
                 )}
               </div>
 
-              {failed ? (
-                <p style={{ color: 'var(--red)', fontSize: '0.82rem' }}>
-                  Model failed to run. Check backend logs.
-                </p>
-              ) : (
-                <div className="metric-rows">
-                  {[
-                    { label: 'MAE',  val: metrics.mae  },
-                    { label: 'RMSE', val: metrics.rmse },
-                    { label: 'MAPE', val: metrics.mape != null ? `${metrics.mape}%` : null },
-                  ].map(({ label, val }) => (
-                    <div key={label} className="metric-row">
-                      <span className="label">{label}</span>
-                      <span className={`value ${isWinner ? 'best' : ''}`}>
-                        {val != null ? String(val) : 'N/A'}
-                      </span>
-                    </div>
-                  ))}
-
-                  <div style={{ height: '1px', background: 'var(--border)', margin: '4px 0' }} />
-
-                  <div className="metric-row">
-                    <span className="label">Forecast End</span>
-                    <span className="value">{stats.forecast_end_value?.toLocaleString() ?? 'N/A'}</span>
-                  </div>
-                  <div className="metric-row">
-                    <span className="label">Growth</span>
-                    <span className="value" style={{
-                      color: (stats.growth_pct_over_period ?? 0) >= 0 ? 'var(--green)' : 'var(--red)',
-                    }}>
-                      {(stats.growth_pct_over_period ?? 0) >= 0 ? '+' : ''}
-                      {stats.growth_pct_over_period ?? 'N/A'}%
+              <div className="metric-rows">
+                {[
+                  { label: 'MAE',  val: metrics.mae  },
+                  { label: 'RMSE', val: metrics.rmse },
+                  { label: 'MAPE', val: metrics.mape != null ? `${metrics.mape}%` : null },
+                ].map(({ label, val }) => (
+                  <div key={label} className="metric-row">
+                    <span className="label">{label}</span>
+                    <span className={`value ${isWinner ? 'best' : ''}`}>
+                      {val != null ? String(val) : 'N/A'}
                     </span>
                   </div>
-                </div>
-              )}
+                ))}
+
+                {stats.forecast_end_value != null && (
+                  <>
+                    <div style={{ height: '1px', background: 'var(--border)', margin: '4px 0' }} />
+                    <div className="metric-row">
+                      <span className="label">Forecast End</span>
+                      <span className="value">{stats.forecast_end_value?.toLocaleString() ?? 'N/A'}</span>
+                    </div>
+                    <div className="metric-row">
+                      <span className="label">Growth</span>
+                      <span className="value" style={{
+                        color: (stats.growth_pct_over_period ?? 0) >= 0 ? 'var(--green)' : 'var(--red)',
+                      }}>
+                        {(stats.growth_pct_over_period ?? 0) >= 0 ? '+' : ''}
+                        {stats.growth_pct_over_period ?? 'N/A'}%
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
 
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '14px', lineHeight: 1.55 }}>
                 {m.desc}
@@ -236,20 +228,19 @@ export default function ModelComparison({ data, forecastWeeks, contextLabel, sel
         })}
       </div>
 
-      {/* ── Forecast Chart ────────────────────────────────────────────────── */}
+      {/* ── Forecast Chart ──────────────────────────────────────────────────── */}
       <div className="glass-card comparison-chart-container">
         <div className="chart-header">
           <div>
-            <h3>Forecast Comparison — Classical vs N-BEATS</h3>
+            <h3>Forecast Comparison — Classical vs Naive Baseline</h3>
             <p style={{ fontSize: '0.8rem', marginTop: '4px', color: 'var(--text-muted)' }}>
               Both models forecasting the next {forecastWeeks} week{forecastWeeks > 1 ? 's' : ''}.
-              Shaded areas = 95% confidence intervals.
+              Shaded area = 95% confidence interval (Classical model only).
             </p>
           </div>
           <div className="chart-legend-pills">
             <span className="legend-pill" style={{ borderColor: '#f59e0b' }}>— 📐 Classical</span>
-            <span className="legend-pill" style={{ borderColor: '#34d399' }}>— 🧠 N-BEATS</span>
-            <span className="legend-pill" style={{ borderColor: '#94a3b8', borderStyle: 'dotted' }}>··· Naive</span>
+            <span className="legend-pill" style={{ borderColor: '#94a3b8', borderStyle: 'dotted' }}>··· 📏 Naive</span>
           </div>
         </div>
 
@@ -259,12 +250,8 @@ export default function ModelComparison({ data, forecastWeeks, contextLabel, sel
           <ComposedChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 0 }}>
             <defs>
               <linearGradient id="classicalBand" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#f59e0b" stopOpacity={0.12} />
+                <stop offset="5%"  stopColor="#f59e0b" stopOpacity={0.15} />
                 <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.02} />
-              </linearGradient>
-              <linearGradient id="nbeatsBand" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#34d399" stopOpacity={0.12} />
-                <stop offset="95%" stopColor="#34d399" stopOpacity={0.02} />
               </linearGradient>
             </defs>
 
@@ -291,29 +278,14 @@ export default function ModelComparison({ data, forecastWeeks, contextLabel, sel
             <Area type="monotone" dataKey="classical_lower" stroke="none" fill="var(--bg-base)"
               fillOpacity={1} dot={false} legendType="none" name="Classical Lower" />
 
-            {/* N-BEATS CI band */}
-            <Area type="monotone" dataKey="nbeats_upper" stroke="none" fill="url(#nbeatsBand)"
-              fillOpacity={1} dot={false} legendType="none" name="N-BEATS Upper" />
-            <Area type="monotone" dataKey="nbeats_lower" stroke="none" fill="var(--bg-base)"
-              fillOpacity={1} dot={false} legendType="none" name="N-BEATS Lower" />
-
             {/* Classical forecast line */}
             <Line type="monotone" dataKey="classical" stroke="#f59e0b"
-              strokeWidth={winner === 'classical' ? 2.8 : 1.8}
-              strokeOpacity={winner === 'classical' ? 1 : 0.65}
-              dot={false} name="Classical (OLS+Fourier)"
+              strokeWidth={2.5} dot={false} name="Classical (OLS+Fourier)"
               activeDot={{ r: 4, fill: '#f59e0b' }} />
-
-            {/* N-BEATS forecast line */}
-            <Line type="monotone" dataKey="nbeats" stroke="#34d399"
-              strokeWidth={winner === 'nbeats' ? 2.8 : 1.8}
-              strokeOpacity={winner === 'nbeats' ? 1 : 0.65}
-              dot={false} name="N-BEATS"
-              activeDot={{ r: 4, fill: '#34d399' }} />
 
             {/* Naive baseline */}
             <Line type="monotone" dataKey="naive" stroke="#94a3b8"
-              strokeWidth={1.5} strokeDasharray="3 5"
+              strokeWidth={1.8} strokeDasharray="4 5"
               dot={false} name="Naive Baseline" activeDot={false} />
           </ComposedChart>
         </ResponsiveContainer>
@@ -325,10 +297,10 @@ export default function ModelComparison({ data, forecastWeeks, contextLabel, sel
         </div>
       </div>
 
-      {/* ── AI Insight ───────────────────────────────────────────────────── */}
+      {/* ── AI Insight ────────────────────────────────────────────────────── */}
       {comparison.comparison_insight && (
         <InsightCard
-          icon="🧠"
+          icon="📐"
           title="AI Model Comparison Analysis"
           model={selectedModel}
           text={comparison.comparison_insight}
@@ -341,15 +313,17 @@ export default function ModelComparison({ data, forecastWeeks, contextLabel, sel
           📋 How This Comparison Works
         </h4>
         <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-          Both models share the same conceptual design — decompose the series into{' '}
-          <strong>trend + seasonality</strong>. The Classical model does this with
-          analytical equations (OLS + Fourier). N-BEATS learns the same decomposition
-          from data using polynomial and Fourier basis expansions in its neural stacks.
+          The <strong>Classical model</strong> decomposes the series into{' '}
+          <strong>trend + seasonality</strong> using OLS regression and Fourier series — the same
+          mathematics used by Facebook Prophet, computed analytically in milliseconds.
           <br /><br />
-          Each model is evaluated on the same hidden <strong>20% holdout set</strong>.
-          Winner = lowest <strong>MAE</strong>. On regular, seasonal data Classical
-          usually wins. On noisier or non-linear series, N-BEATS may win.{' '}
-          <em>The result is dataset-specific — that's the educational point.</em>
+          The <strong>Naive Baseline</strong> simply predicts the 28-day rolling average flat into the future.
+          It requires zero computation. If our model cannot beat this,
+          it is not learning anything meaningful from the data.
+          <br /><br />
+          Both are evaluated on the same hidden <strong>20% holdout set</strong>.
+          Winner = lowest <strong>MAE</strong>.{' '}
+          <em>This directly demonstrates Hackathon Learning Outcome #2: "Why simple comparisons matter."</em>
         </p>
       </div>
     </div>

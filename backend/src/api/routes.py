@@ -11,7 +11,6 @@ from typing import Literal, Optional, List
 
 from src.services.data_simulator import generate_synthetic_data
 from src.services.forecasting import run_forecast, run_scenario_forecast
-from src.services.nbeats_forecasting import run_nbeats_forecast
 from src.services.llm_service import (
     generate_forecast_insight,
     generate_anomaly_insight,
@@ -317,16 +316,15 @@ def scenario(req: ScenarioRequest):
 @router.post("/model-comparison", tags=["Forecasting"])
 def model_comparison(req: CompareRequest):
     """
-    Head-to-head comparison of two models on the same dataset:
-      1. Classical (OLS + Fourier) — analytical, interpretable baseline
-      2. N-BEATS (Interpretable DL) — ICLR 2020, learned decomposition
+    Compares the Classical (OLS + Fourier) model against a Naive Baseline.
 
-    Both models decompose time series into trend + seasonality.
-    Classical does it analytically (OLS). N-BEATS learns it from data.
-    The winner is determined empirically via MAE on a 20% holdout set.
+    The Naive Baseline is a 28-day rolling average — the simplest possible
+    "forecast". Hackathon Learning Outcome #2 requires showing that our model
+    beats this baseline; this tab demonstrates it empirically on the user's
+    own data with MAE / RMSE / MAPE metrics on a 20% holdout.
 
-    Directly addresses Hackathon Learning Outcome #1:
-    'When more advanced models are justified — demonstrated empirically.'
+    Both signals are already computed by run_forecast(), so this endpoint
+    is instant — no training, no PyTorch, no waiting.
     """
     if len(req.data) < 60:
         raise HTTPException(
@@ -334,36 +332,45 @@ def model_comparison(req: CompareRequest):
             detail="At least 60 data points are required for model comparison (need holdout set).",
         )
 
-    # ── Classical model (fast, analytical) ───────────────────────────────────
+    # ── Run OLS+Fourier model (analytical, instant) ───────────────────────────
     classical_result = run_forecast(
         data=req.data,
         forecast_weeks=req.forecast_weeks,
         context_label=req.context_label,
     )
 
-    # ── N-BEATS model (deep learning, interpretable) ──────────────────────────
-    try:
-        nbeats_result = run_nbeats_forecast(
-            data=req.data,
-            forecast_weeks=req.forecast_weeks,
-            context_label=req.context_label,
-        )
-    except Exception as e:
-        nbeats_result = {
-            "forecast": [],
-            "historical_fit": [],
-            "summary_stats": {"model_name": "N-BEATS", "error": str(e)},
-            "accuracy_metrics": {"mae": None, "rmse": None, "mape": None, "holdout_size": 0},
-        }
+    # ── Build Naive Baseline metrics on the same holdout ─────────────────────
+    import numpy as np
+    import pandas as pd
 
-    # ── Winner: lowest MAE on holdout ─────────────────────────────────────────
-    def _safe_mae(result):
-        v = result.get("accuracy_metrics", {}).get("mae", None)
-        return float(v) if v is not None else float("inf")
+    df = pd.DataFrame(req.data)
+    df["y"] = pd.to_numeric(df["y"])
+    y = df["y"].values
+    n = len(y)
+    holdout_size = max(int(n * 0.2), 30)
+    window = 28
 
-    classical_mae = _safe_mae(classical_result)
-    nbeats_mae    = _safe_mae(nbeats_result)
-    winner = "classical" if classical_mae <= nbeats_mae else "nbeats"
+    naive_preds = np.array([
+        float(np.mean(y[max(0, i - window): i]))
+        for i in range(n - holdout_size, n)
+    ])
+    holdout_actual = y[n - holdout_size:]
+
+    naive_mae  = float(np.mean(np.abs(holdout_actual - naive_preds)))
+    naive_rmse = float(np.sqrt(np.mean((holdout_actual - naive_preds) ** 2)))
+    naive_mape = float(np.mean(np.abs((holdout_actual - naive_preds) /
+                       np.clip(holdout_actual, 1, None))) * 100)
+
+    # ── Winner: OLS wins if its MAE is lower than naive ───────────────────────
+    classical_mae = classical_result.get("accuracy_metrics", {}).get("mae", float("inf")) or float("inf")
+    winner = "classical" if classical_mae <= naive_mae else "naive"
+
+    naive_stats = {
+        "model_name": "Naive Baseline (28-day Rolling Avg)",
+        "mae":  round(naive_mae,  2),
+        "rmse": round(naive_rmse, 2),
+        "mape": round(naive_mape, 2),
+    }
 
     comparison = {
         "classical": {
@@ -371,20 +378,25 @@ def model_comparison(req: CompareRequest):
             "summary_stats": classical_result["summary_stats"],
             "accuracy_metrics": classical_result.get("accuracy_metrics", {}),
         },
-        "nbeats": {
-            "forecast": nbeats_result["forecast"],
-            "summary_stats": nbeats_result["summary_stats"],
-            "accuracy_metrics": nbeats_result.get("accuracy_metrics", {}),
+        "naive": {
+            "forecast": classical_result.get("naive_baseline", []),
+            "summary_stats": naive_stats,
+            "accuracy_metrics": {
+                "mae":  round(naive_mae,  2),
+                "rmse": round(naive_rmse, 2),
+                "mape": round(naive_mape, 2),
+                "holdout_size": holdout_size,
+            },
         },
         "winner": winner,
         "naive_baseline": classical_result.get("naive_baseline", []),
     }
 
-    # ── AI insight (2-way comparison) ─────────────────────────────────────────
+    # ── AI insight ────────────────────────────────────────────────────────────
     try:
         comparison["comparison_insight"] = generate_comparison_insight(
             classical_stats=classical_result["summary_stats"],
-            nbeats_stats=nbeats_result["summary_stats"],
+            nbeats_stats=naive_stats,
             winner=winner,
             model_choice=req.model_choice,
         )

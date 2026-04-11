@@ -412,18 +412,51 @@ def run_nbeats_forecast(
     n_hist = len(y)
     forecast_days = forecast_weeks * 7
 
-    # ── Train (or load from cache) ────────────────────────────────────────────
+    # ── Load pretrained weights OR train on demand ────────────────────────────
+    # Priority:
+    #   1. Per-dataset in-memory cache (instant — same data seen before)
+    #   2. Pre-trained weights from corpus (fast — background thread finished)
+    #   3. On-demand training from scratch (slow fallback — pretrain not ready)
     cache_key = _data_hash(y)
     model, y_min, y_scale = _get_cached(cache_key)
 
     if model is None:
-        model, y_min, y_scale = _train_nbeats(
-            y,
-            window_size=window_size,
-            forecast_size=1,
-            epochs=epochs,
-            hidden_units=hidden_units,
-        )
+        pretrained_used = False
+        try:
+            from src.services.nbeats_pretrain import (
+                get_pretrained_state_dict,
+                is_pretrained,
+                PRETRAIN_WINDOW_SIZE,
+                PRETRAIN_HIDDEN_UNITS,
+            )
+            if is_pretrained() and window_size == PRETRAIN_WINDOW_SIZE and hidden_units == PRETRAIN_HIDDEN_UNITS:
+                state_dict = get_pretrained_state_dict()
+                if state_dict is not None:
+                    # Instantiate a fresh model and load pretrained weights.
+                    # Fresh instance per request avoids .train()/.eval() state
+                    # conflicts between concurrent MC-Dropout inference calls.
+                    model = NBeats(
+                        window_size=window_size,
+                        forecast_size=1,
+                        hidden_units=hidden_units,
+                    )
+                    model.load_state_dict(state_dict)
+                    model.eval()
+                    _, y_min, y_scale = _normalize(y.astype(np.float64))
+                    pretrained_used = True
+        except ImportError:
+            pass  # pretrain module unavailable — fall through to on-demand
+
+        if not pretrained_used:
+            # Pre-training not ready yet — train on demand (8 epochs, ~5-8 s)
+            model, y_min, y_scale = _train_nbeats(
+                y,
+                window_size=window_size,
+                forecast_size=1,
+                epochs=epochs,
+                hidden_units=hidden_units,
+            )
+
         _put_cache(cache_key, model, y_min, y_scale)
 
     # ── Holdout Metrics (last 20%, batch inference) ───────────────────────────

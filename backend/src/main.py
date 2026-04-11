@@ -40,3 +40,23 @@ def ping():
     cold-start delay (~30-60 s) from the user-visible critical path.
     """
     return {"pong": True}
+
+
+@app.get("/pretrain-status", tags=["Health"])
+def pretrain_status():
+    """
+    Reports whether the N-BEATS background pre-training has completed.
+    Useful for debugging Render cold-starts and verifying the speedup is active.
+    """
+    try:
+        from src.services.nbeats_pretrain import is_pretrained
+        ready = is_pretrained()
+    except Exception:
+        ready = False
+    return {
+        "pretrained": ready,
+        "message": "N-BEATS pretrained weights ready — inference will be fast (~0.5 s)."
+                   if ready else
+                   "Pre-training still running (~40 s after boot). First Compare Models call will train on demand.",
+    }
+
