@@ -183,28 +183,36 @@ def generate_chat_insight(
     return _call_with_fallback(prompt, model_choice)
 
 
-def _build_comparison_prompt(classical_stats: dict, cnn_stats: dict, winner: str, nbeats_stats: dict = None) -> str:
-    """Build a prompt comparing all three models: Classical vs CNN vs N-BEATS."""
-    winner_names = {
-        "classical": "Classical (OLS + Fourier)",
-        "cnn": "1D CNN (Deep Learning)",
-        "nbeats": "N-BEATS (Interpretable Deep Learning)",
-    }
-    winner_name = winner_names.get(winner, winner)
+def _build_comparison_prompt(classical_stats: dict, nbeats_stats: dict, winner: str) -> str:
+    """
+    Build a prompt for the Classical vs N-BEATS head-to-head comparison.
+    Both models share the same decomposition philosophy (trend + seasonality),
+    but Classical does it analytically while N-BEATS learns it from data.
+    """
+    winner_name = (
+        "Classical (OLS + Fourier)"
+        if winner == "classical"
+        else "N-BEATS (Interpretable Deep Learning)"
+    )
 
-    nbeats_section = ""
+    nbeats_block = ""
     if nbeats_stats and "error" not in nbeats_stats:
-        nbeats_section = f"""
-Model C — N-BEATS (Interpretable Deep Learning, ICLR 2020):
+        nbeats_block = f"""
+Model B — N-BEATS (Interpretable Deep Learning, ICLR 2020):
 - Forecast End Value: {nbeats_stats.get('forecast_end_value', 'N/A')}
 - Growth: {nbeats_stats.get('growth_pct_over_period', 'N/A')}%
 - MAE: {nbeats_stats.get('mae', 'N/A')}
 - RMSE: {nbeats_stats.get('rmse', 'N/A')}
 - MAPE: {nbeats_stats.get('mape', 'N/A')}%
-- Architecture: Trend Stack (polynomial basis) + Seasonality Stack (Fourier basis) — same decomposition as Classical, but learned from data"""
+- Architecture: Trend Stack (polynomial basis) → Seasonality Stack (Fourier basis)
+  Learned end-to-end via doubly-residual backpropagation."""
+    else:
+        nbeats_block = "\nModel B — N-BEATS: failed to run (see error)."
 
     return f"""You are a data science expert explaining model comparison results to a business audience.
-Three forecasting models were tested head-to-head on the same dataset:
+Two forecasting models that share the same conceptual approach were tested head-to-head:
+both decompose the time series into trend + seasonality — but one uses analytical equations,
+the other learns the decomposition from data.
 
 Model A — Classical (OLS + Fourier Decomposition):
 - Forecast End Value: {classical_stats.get('forecast_end_value')}
@@ -212,35 +220,28 @@ Model A — Classical (OLS + Fourier Decomposition):
 - MAE: {classical_stats.get('mae')}
 - RMSE: {classical_stats.get('rmse')}
 - MAPE: {classical_stats.get('mape')}%
-- Architecture: Linear regression + Fourier seasonality (fully interpretable, no training)
-
-Model B — 1D CNN (Deep Learning):
-- Forecast End Value: {cnn_stats.get('forecast_end_value', 'N/A')}
-- Growth: {cnn_stats.get('growth_pct_over_period', 'N/A')}%
-- MAE: {cnn_stats.get('mae', 'N/A')}
-- RMSE: {cnn_stats.get('rmse', 'N/A')}
-- MAPE: {cnn_stats.get('mape', 'N/A')}%
-- Architecture: Convolutional filters on sliding windows (captures local patterns){nbeats_section}
+- Architecture: Linear regression (OLS) + Fourier seasonality. No training required.
+  Fully analytical and interpretable.{nbeats_block}
 
 Winner (lowest MAE on 20% holdout set): {winner_name}
 
 Write exactly 4 sentences:
-1. State which model performed best across MAE/RMSE/MAPE and by how much versus the others.
-2. Explain in plain language WHY this model outperformed the others on this data (e.g., data regularity, size, pattern complexity).
-3. Describe when each of the other models would be the better choice (different data characteristics).
-4. Give a clear recommendation: for this specific dataset, which model should the team use in production?
+1. State which model performed better and by how much on MAE and RMSE.
+2. Explain WHY in plain language — relate it to the data's pattern (e.g. regularity,
+   seasonality strength, noise level, dataset size).
+3. Describe when the other model would be the better choice (different data characteristics).
+4. Give a concrete recommendation: for this dataset, which model should the team use and why?
 
-Be professional, educational, and concise. Avoid excessive jargon."""
+Be professional, educational, and concise. Avoid jargon."""
 
 
 def generate_comparison_insight(
     classical_stats: dict,
-    cnn_stats: dict,
+    nbeats_stats: dict,
     winner: str,
     model_choice: ModelChoice = "gemini",
-    nbeats_stats: dict = None,
 ) -> str:
-    """Generate an AI insight comparing all three models: Classical vs CNN vs N-BEATS."""
-    prompt = _build_comparison_prompt(classical_stats, cnn_stats, winner, nbeats_stats)
+    """Generate an AI insight comparing Classical (analytical) vs N-BEATS (learned)."""
+    prompt = _build_comparison_prompt(classical_stats, nbeats_stats, winner)
     return _call_with_fallback(prompt, model_choice)
 
