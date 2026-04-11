@@ -75,16 +75,16 @@ def test_forecast_returns_expected_keys(sample_data):
 
 
 def test_forecast_future_rows_count(sample_data):
-    """Verify forecast returns ~28 future rows for 4 weeks."""
+    """Verify forecast returns exactly 28 future rows for 4 weeks (7 days/week)."""
     result = run_forecast(sample_data, forecast_weeks=4)
     future_count = len(result["forecast"])
-    assert 26 <= future_count <= 30  # Allow minor buffer for Prophet internals
+    assert future_count == 28  # 4 weeks × 7 days
 
 
 def test_forecast_detects_anomalies(sample_data):
-    """Confirm Prophet detects anomalies in data with injected outliers."""
+    """Confirm the OLS+Bootstrap anomaly detector flags injected outliers."""
     result = run_forecast(sample_data, forecast_weeks=4)
-    # With injected anomalies, must detect at least 1
+    # With injected anomalies, the 95% CI band should flag at least 1
     assert len(result["anomalies"]) >= 1
 
 
