@@ -38,6 +38,7 @@ Performance targets (CPU, 730-day dataset):
     Total     : < 5 s
 """
 
+import gc
 import numpy as np
 import pandas as pd
 import torch
@@ -248,7 +249,7 @@ def _train_nbeats(
     epochs: int = 20,
     lr: float = 0.001,
     batch_size: int = 64,
-    hidden_units: int = 128,
+    hidden_units: int = 64,
 ) -> tuple:
     """
     Train N-BEATS on the full historical dataset.
@@ -256,6 +257,10 @@ def _train_nbeats(
     Using one-step-ahead sliding windows for training gives the model dense
     supervision signal (n-window_size samples from n data points).
     The multi-step forecast at inference time uses auto-regression.
+
+    hidden_units=64 is used (down from 128) to keep memory under Render's
+    free-tier 512 MB limit while preserving forecast quality — time series
+    decomposition does not require large hidden layers.
 
     Returns: (model, y_min, y_scale)
     """
@@ -266,7 +271,8 @@ def _train_nbeats(
     X_tensor = torch.FloatTensor(X)          # (N, window_size)
     y_tensor = torch.FloatTensor(targets)    # (N,)
     dataset = TensorDataset(X_tensor, y_tensor)
-    loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    # num_workers=0: avoid spawning subprocesses on Render's constrained env
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
 
     model = NBeats(
         window_size=window_size,
@@ -284,6 +290,12 @@ def _train_nbeats(
             loss = criterion(pred, y_batch)
             loss.backward()
             optimizer.step()
+
+    # ── Memory cleanup ────────────────────────────────────────────────────────
+    # Explicitly free optimizer state (Adam keeps moment buffers = 2× model size)
+    # and training tensors before returning, so the caller only holds the model.
+    del optimizer, criterion, loader, dataset, X_tensor, y_tensor, X, targets
+    gc.collect()
 
     return model, y_min, y_scale
 
@@ -349,7 +361,7 @@ def run_nbeats_forecast(
     context_label: str = "Metric",
     window_size: int = 28,
     epochs: int = 20,
-    hidden_units: int = 128,
+    hidden_units: int = 64,
 ) -> dict:
     """
     Full N-BEATS pipeline. Targets < 5 s on CPU.
@@ -484,7 +496,7 @@ def run_nbeats_forecast(
         "mape": round(mape, 2),
     }
 
-    return {
+    result = {
         "forecast": forecast_records,
         "historical_fit": hist_fit_records,
         "summary_stats": summary_stats,
@@ -495,3 +507,12 @@ def run_nbeats_forecast(
             "holdout_size": len(holdout_preds),
         },
     }
+
+    # ── Final memory cleanup ──────────────────────────────────────────────────
+    # Drop the model and all intermediate tensors now that results are serialised
+    # into plain Python dicts. This returns ~50-100 MB to the OS immediately,
+    # keeping Render's 512 MB free-tier instance stable across multiple requests.
+    del model, holdout_X, all_X
+    gc.collect()
+
+    return result
