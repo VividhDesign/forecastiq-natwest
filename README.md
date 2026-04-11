@@ -103,10 +103,10 @@ FastAPI Backend (Render)
 │    Primary:  Groq (Llama-3.3-70B) — no daily limits
 │    Fallback: Gemini 2.0 Flash — auto-switches on 429
 │
-│  N-BEATS Deep Learning (ICLR 2020)
-│    Pre-trained at startup on 60 synthetic series (~40 s)
-│    Compare Models tab: Classical vs N-BEATS on 20% holdout
-│    MAE / RMSE / MAPE → winner declared per dataset
+│  Model Comparison (Compare Models tab)
+│    Classical (OLS+Fourier) vs 28-day Naive Baseline
+│    Evaluated on 20% holdout: MAE / RMSE / MAPE
+│    Winner declared live — purely analytical, <1 s
 ```
 
 ---
@@ -334,7 +334,7 @@ forecastiq-natwest/
             │   ├── ForecastChart.jsx     # Recharts + CI band + naive baseline
             │   ├── AnomalyPanel.jsx      # Anomaly table + AI per-anomaly insights
             │   ├── ScenarioPlayground.jsx # What-if sliders + side-by-side chart
-            │   ├── ModelComparison.jsx   # Classical vs N-BEATS head-to-head
+            │   ├── ModelComparison.jsx   # Classical vs Naive Baseline comparison
             │   ├── ChatPanel.jsx         # Grounded Q&A — verified stats only
             │   └── DataExplorer.jsx      # Searchable table + CSV export
             └── Shared/
@@ -459,7 +459,6 @@ This eliminates the most common failure mode in AI analytics tools — hallucina
 | Styling | Vanilla CSS (DM Sans + DM Mono) | Zero framework lock-in |
 | Backend | Python 3.11, FastAPI | Async, auto OpenAPI docs |
 | Forecasting | NumPy, scikit-learn | Pure Python OLS+Fourier, no C++ required |
-| Deep Learning | PyTorch (CPU) | N-BEATS ICLR 2020, in-memory cache |
 | Live Data | yfinance | Yahoo Finance — public market data |
 | AI (default) | Groq SDK | Llama-3.3-70B — no daily quota limits |
 | AI (optional) | google-generativeai | Gemini 2.0 Flash — auto-fallback on 429 |
