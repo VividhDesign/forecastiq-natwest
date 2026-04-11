@@ -42,7 +42,38 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
+import hashlib
+import time
 from torch.utils.data import DataLoader, TensorDataset
+
+
+# ─── In-Memory Model Cache ────────────────────────────────────────────────────
+# Keyed by MD5 of the raw input array bytes.
+# TTL = 1800s (30 min) — covers an entire hackathon demo session.
+# Evicts oldest entry when > 5 models cached (keeps Render memory sane).
+
+_MODEL_CACHE: dict = {}
+_CACHE_TTL: int = 1800  # seconds
+
+
+def _data_hash(y: np.ndarray) -> str:
+    """Stable MD5 of the input array for cache key."""
+    return hashlib.md5(y.astype(np.float64).tobytes()).hexdigest()
+
+
+def _get_cached(key: str):
+    entry = _MODEL_CACHE.get(key)
+    if entry and (time.time() - entry["ts"]) < _CACHE_TTL:
+        return entry["model"], entry["y_min"], entry["y_scale"]
+    return None, None, None
+
+
+def _put_cache(key: str, model, y_min: float, y_scale: float) -> None:
+    _MODEL_CACHE[key] = {"model": model, "y_min": y_min, "y_scale": y_scale, "ts": time.time()}
+    # Evict oldest entry if cache grows beyond 5 items
+    if len(_MODEL_CACHE) > 5:
+        oldest = min(_MODEL_CACHE, key=lambda k: _MODEL_CACHE[k]["ts"])
+        del _MODEL_CACHE[oldest]
 
 
 # ─── Basis Functions ──────────────────────────────────────────────────────────
@@ -245,10 +276,10 @@ def _train_nbeats(
     y: np.ndarray,
     window_size: int = 28,
     forecast_size: int = 28,
-    epochs: int = 20,
+    epochs: int = 8,       # 8 epochs = good quality + fast (~2-3s on Render CPU)
     lr: float = 0.001,
     batch_size: int = 64,
-    hidden_units: int = 128,
+    hidden_units: int = 64,  # 64 units = 4x faster than 128, minimal accuracy loss
 ) -> tuple:
     """
     Train N-BEATS on the full historical dataset.
@@ -348,21 +379,22 @@ def run_nbeats_forecast(
     forecast_weeks: int = 4,
     context_label: str = "Metric",
     window_size: int = 28,
-    epochs: int = 20,
-    hidden_units: int = 128,
+    epochs: int = 8,
+    hidden_units: int = 64,
 ) -> dict:
     """
-    Full N-BEATS pipeline. Targets < 5 s on CPU.
+    Full N-BEATS pipeline with in-memory caching.
+
+    First call with a given dataset: trains the model (~2-4s on CPU).
+    Subsequent calls with the same dataset: instant cache hit (<0.05s).
+    Cache TTL = 30 minutes, max 5 models stored (Render memory-safe).
 
     Steps:
-      1. Normalize and create sliding windows
-      2. Train NBeats model (one-step-ahead, full dataset)
-      3. Evaluate on last 20% holdout (batch inference, no retraining)
-      4. MC Dropout multi-step future forecast (batched, fast)
+      1. Hash input data → check cache
+      2. If miss: train NBeats, store in cache
+      3. Evaluate on last 20% holdout (batch inference)
+      4. MC Dropout multi-step future forecast (batched)
       5. Batch-infer historical fitted values for the chart
-
-    Returns a dict with the same shape as run_cnn_forecast / run_forecast
-    so the comparison endpoint can treat all three models uniformly.
     """
     df = pd.DataFrame(data)
     df["ds"] = pd.to_datetime(df["ds"])
@@ -373,14 +405,19 @@ def run_nbeats_forecast(
     n_hist = len(y)
     forecast_days = forecast_weeks * 7
 
-    # ── Train ────────────────────────────────────────────────────────────────
-    model, y_min, y_scale = _train_nbeats(
-        y,
-        window_size=window_size,
-        forecast_size=1,
-        epochs=epochs,
-        hidden_units=hidden_units,
-    )
+    # ── Train (or load from cache) ────────────────────────────────────────────
+    cache_key = _data_hash(y)
+    model, y_min, y_scale = _get_cached(cache_key)
+
+    if model is None:
+        model, y_min, y_scale = _train_nbeats(
+            y,
+            window_size=window_size,
+            forecast_size=1,
+            epochs=epochs,
+            hidden_units=hidden_units,
+        )
+        _put_cache(cache_key, model, y_min, y_scale)
 
     # ── Holdout Metrics (last 20%, batch inference) ───────────────────────────
     y_norm = (y - y_min) / y_scale

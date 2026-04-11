@@ -117,18 +117,22 @@ def generate_synthetic_data(
     # --- Anomaly Injection ---
     injected_anomaly_indices = []
     if inject_anomalies:
-        # No fixed seed — anomaly positions vary each simulation run
-        # Inject 4 anomalies: 2 spikes, 2 drops
-        spike_indices = np.random.choice(range(60, days - 60), size=2, replace=False)
-        drop_indices = np.random.choice(range(60, days - 60), size=2, replace=False)
+        # Seed with current microsecond time — guarantees different positions on every call,
+        # even if global numpy seed was set elsewhere (e.g. by the forecasting bootstrap).
+        import time
+        rng = np.random.default_rng(int(time.time() * 1_000_000) % (2**31))
+        # Inject 4 anomalies: 2 spikes, 2 drops — all in the middle 80% of the dataset
+        spike_indices = rng.choice(range(60, days - 60), size=2, replace=False)
+        drop_indices  = rng.choice(range(60, days - 60), size=2, replace=False)
 
         for idx in spike_indices:
-            y[idx] *= np.random.uniform(2.5, 4.0)  # Spike: 2.5x to 4x
+            y[idx] *= rng.uniform(2.5, 4.0)   # Spike: 2.5x to 4x normal value
             injected_anomaly_indices.append(int(idx))
 
         for idx in drop_indices:
-            y[idx] *= np.random.uniform(0.1, 0.3)  # Drop: 70-90% crash
+            y[idx] *= rng.uniform(0.1, 0.3)   # Drop: 70-90% crash
             injected_anomaly_indices.append(int(idx))
+
 
     # Build date series starting 'days' ago
     start_date = datetime.today() - timedelta(days=days)
