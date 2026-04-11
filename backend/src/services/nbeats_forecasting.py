@@ -298,7 +298,8 @@ def _train_nbeats(
     X_tensor = torch.FloatTensor(X)          # (N, window_size)
     y_tensor = torch.FloatTensor(targets)    # (N,)
     dataset = TensorDataset(X_tensor, y_tensor)
-    loader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    # num_workers=0: avoid spawning subprocesses on Render's constrained free-tier env
+    loader = DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=0)
 
     model = NBeats(
         window_size=window_size,
@@ -316,6 +317,11 @@ def _train_nbeats(
             loss = criterion(pred, y_batch)
             loss.backward()
             optimizer.step()
+    # ── Memory cleanup: must happen BEFORE caching ────────────────────────────
+    # Optimizer (Adam) holds 2× model size in moment buffers. Loader and tensor
+    # objects must be freed now so only the model weights go into the cache.
+    del optimizer, criterion, loader, dataset, X_tensor, y_tensor, X, targets
+    gc.collect()
 
     return model, y_min, y_scale
 
