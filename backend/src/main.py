@@ -29,3 +29,14 @@ app.include_router(router, prefix="/api")
 def health_check():
     """Health check endpoint."""
     return {"status": "ok", "service": "ForecastIQ API"}
+
+
+@app.get("/ping", tags=["Health"])
+def ping():
+    """
+    Ultra-lightweight warm-up endpoint.
+    The frontend pings this on page load to wake the Render free-tier instance
+    from sleep before the user clicks 'Launch Dashboard', eliminating the
+    cold-start delay (~30-60 s) from the user-visible critical path.
+    """
+    return {"pong": True}

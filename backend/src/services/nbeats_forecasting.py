@@ -38,6 +38,7 @@ Performance targets (CPU, 730-day dataset):
     Total     : < 5 s
 """
 
+import gc
 import numpy as np
 import pandas as pd
 import torch
@@ -521,7 +522,7 @@ def run_nbeats_forecast(
         "mape": round(mape, 2),
     }
 
-    return {
+    result = {
         "forecast": forecast_records,
         "historical_fit": hist_fit_records,
         "summary_stats": summary_stats,
@@ -529,6 +530,14 @@ def run_nbeats_forecast(
             "mae": round(mae, 2),
             "rmse": round(rmse, 2),
             "mape": round(mape, 2),
-            "holdout_size": len(holdout_preds),
+            "holdout_size": len(holdout_preds) if hasattr(holdout_preds, '__len__') else 0,
         },
     }
+
+    # ── Memory cleanup (Render free-tier: 512 MB limit) ────────────────────────
+    # Drop large tensors now that results are serialised into plain Python dicts.
+    # The model itself stays in the cache for fast re-use on subsequent requests.
+    del holdout_X, all_X
+    gc.collect()
+
+    return result
