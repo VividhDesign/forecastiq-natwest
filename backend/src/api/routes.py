@@ -49,6 +49,13 @@ class ScenarioRequest(BaseModel):
     remove_outliers: bool = False
 
 
+class ForecastInsightRequest(BaseModel):
+    """Lightweight request to generate an AI insight from pre-computed stats."""
+    model_config = {"protected_namespaces": ()}
+    summary_stats: dict
+    model_choice: Literal["gemini", "groq"] = "gemini"
+
+
 class AnomalyInsightRequest(BaseModel):
     model_config = {"protected_namespaces": ()}
     anomaly: dict
@@ -121,10 +128,14 @@ async def upload_csv(file: UploadFile = File(...)):
 @router.post("/forecast", tags=["Forecasting"])
 def forecast(req: ForecastRequest):
     """
-    Run the full Prophet forecasting pipeline:
-    - Short-term forecast with confidence intervals
+    Run the math-only forecasting pipeline (fast path, no LLM):
+    - OLS + Fourier decomposition
+    - Vectorized bootstrap confidence intervals
     - Anomaly detection on historical data
-    - AI-generated insight (via selected LLM)
+    - Naive baseline comparison
+
+    The AI insight is intentionally excluded here so this endpoint returns
+    in ~0.3s. Call /forecast-insight separately (in parallel) for the LLM text.
     """
     if len(req.data) < 30:
         raise HTTPException(
@@ -137,16 +148,26 @@ def forecast(req: ForecastRequest):
         context_label=req.context_label,
     )
 
-    # Generate LLM insight for the forecast
+    # Insight is fetched separately by the frontend via /forecast-insight
+    result["forecast_insight"] = None
+    return result
+
+
+@router.post("/forecast-insight", tags=["Forecasting"])
+def forecast_insight(req: ForecastInsightRequest):
+    """
+    Generate an AI insight from pre-computed forecast stats.
+    Called by the frontend in parallel with /forecast so the dashboard
+    renders immediately with data while the AI text loads in the background.
+    """
     try:
-        result["forecast_insight"] = generate_forecast_insight(
-            stats=result["summary_stats"],
+        insight = generate_forecast_insight(
+            stats=req.summary_stats,
             model_choice=req.model_choice,
         )
+        return {"forecast_insight": insight}
     except Exception as e:
-        result["forecast_insight"] = f"[AI insight unavailable: {str(e)}]"
-
-    return result
+        return {"forecast_insight": f"[AI insight unavailable: {str(e)}]"}
 
 
 @router.post("/anomaly-insight", tags=["Forecasting"])

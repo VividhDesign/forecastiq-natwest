@@ -15,6 +15,8 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 export default function Dashboard({ datasetPayload, selectedModel, onModelChange, onReset, theme, onThemeToggle }) {
   const [activeTab, setActiveTab] = useState('forecast')
   const [forecastData, setForecastData] = useState(null)
+  const [forecastInsight, setForecastInsight] = useState(null)
+  const [insightLoading, setInsightLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [forecastWeeks, setForecastWeeks] = useState(4)
@@ -24,7 +26,9 @@ export default function Dashboard({ datasetPayload, selectedModel, onModelChange
   const fetchForecast = useCallback(async () => {
     setLoading(true)
     setError('')
+    setForecastInsight(null)
     try {
+      // ── Step 1: fast math-only call — renders the dashboard immediately (~0.3s) ──
       const res = await axios.post(`${API_BASE}/forecast`, {
         data: datasetPayload.data,
         forecast_weeks: forecastWeeks,
@@ -32,9 +36,23 @@ export default function Dashboard({ datasetPayload, selectedModel, onModelChange
         model_choice: selectedModel,
       })
       setForecastData(res.data)
+      setLoading(false)          // ← UI renders NOW, before LLM
+
+      // ── Step 2: fire LLM insight in background — fades in when ready ──
+      setInsightLoading(true)
+      try {
+        const insightRes = await axios.post(`${API_BASE}/forecast-insight`, {
+          summary_stats: res.data.summary_stats,
+          model_choice: selectedModel,
+        })
+        setForecastInsight(insightRes.data.forecast_insight)
+      } catch {
+        setForecastInsight('[AI insight unavailable. Check API key configuration.]')
+      } finally {
+        setInsightLoading(false)
+      }
     } catch (e) {
       setError(e.response?.data?.detail || 'Forecast failed. Check backend connection.')
-    } finally {
       setLoading(false)
     }
   }, [datasetPayload, forecastWeeks, selectedModel, contextLabel])
@@ -42,6 +60,7 @@ export default function Dashboard({ datasetPayload, selectedModel, onModelChange
   useEffect(() => {
     fetchForecast()
   }, [fetchForecast])
+
 
   const stats = forecastData?.summary_stats
 
@@ -144,7 +163,8 @@ export default function Dashboard({ datasetPayload, selectedModel, onModelChange
                   icon="🔮"
                   title="AI Forecast Insight"
                   model={selectedModel}
-                  text={forecastData.forecast_insight}
+                  text={forecastInsight}
+                  loading={insightLoading}
                 />
                 <div className="glass-card">
                   <h3 style={{ marginBottom: '14px' }}>Pattern Breakdown</h3>
