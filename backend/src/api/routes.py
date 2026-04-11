@@ -11,11 +11,13 @@ from typing import Literal, Optional, List
 
 from src.services.data_simulator import generate_synthetic_data
 from src.services.forecasting import run_forecast, run_scenario_forecast
+from src.services.cnn_forecasting import run_cnn_forecast
 from src.services.llm_service import (
     generate_forecast_insight,
     generate_anomaly_insight,
     generate_scenario_insight,
     generate_chat_insight,
+    generate_comparison_insight,
 )
 
 router = APIRouter()
@@ -61,6 +63,14 @@ class ChatRequest(BaseModel):
     anomaly_count: int = 0
     context_label: str = "Metric"
     model_choice: Literal["gemini", "groq"] = "groq"
+
+
+class CompareRequest(BaseModel):
+    model_config = {"protected_namespaces": ()}
+    data: List[dict]
+    forecast_weeks: int = Field(default=4, ge=1, le=6)
+    context_label: str = "Metric"
+    model_choice: Literal["gemini", "groq"] = "gemini"
 
 
 # ─── Endpoints ───────────────────────────────────────────────────────────────
@@ -186,6 +196,79 @@ def scenario(req: ScenarioRequest):
         result["scenario_insight"] = f"[AI insight unavailable: {str(e)}]"
 
     return result
+
+
+@router.post("/model-comparison", tags=["Forecasting"])
+def model_comparison(req: CompareRequest):
+    """
+    Run BOTH Classical (OLS+Fourier) and 1D CNN models on the same dataset.
+    Returns side-by-side forecasts and accuracy metrics for comparison.
+    This directly addresses Hackathon Learning Outcome #1:
+    'When more advanced models are justified.'
+    """
+    if len(req.data) < 60:
+        raise HTTPException(
+            status_code=400,
+            detail="At least 60 data points are required for model comparison (need holdout set).",
+        )
+
+    # Run classical model
+    classical_result = run_forecast(
+        data=req.data,
+        forecast_weeks=req.forecast_weeks,
+        context_label=req.context_label,
+    )
+
+    # Run CNN model
+    try:
+        cnn_result = run_cnn_forecast(
+            data=req.data,
+            forecast_weeks=req.forecast_weeks,
+            context_label=req.context_label,
+        )
+    except Exception as e:
+        cnn_result = {
+            "forecast": [],
+            "historical_fit": [],
+            "summary_stats": {"model_name": "1D CNN", "error": str(e)},
+            "accuracy_metrics": {"mae": None, "rmse": None, "mape": None, "holdout_size": 0},
+        }
+
+    # Determine winner based on MAE (lower is better)
+    classical_mae = classical_result.get("accuracy_metrics", {}).get("mae", float("inf"))
+    cnn_mae = cnn_result.get("accuracy_metrics", {}).get("mae", float("inf"))
+    if cnn_mae is None:
+        cnn_mae = float("inf")
+
+    winner = "classical" if classical_mae <= cnn_mae else "cnn"
+
+    comparison = {
+        "classical": {
+            "forecast": classical_result["forecast"],
+            "summary_stats": classical_result["summary_stats"],
+            "accuracy_metrics": classical_result.get("accuracy_metrics", {}),
+        },
+        "cnn": {
+            "forecast": cnn_result["forecast"],
+            "summary_stats": cnn_result["summary_stats"],
+            "accuracy_metrics": cnn_result.get("accuracy_metrics", {}),
+        },
+        "winner": winner,
+        "naive_baseline": classical_result.get("naive_baseline", []),
+    }
+
+    # Generate AI insight about the comparison
+    try:
+        comparison["comparison_insight"] = generate_comparison_insight(
+            classical_stats=classical_result["summary_stats"],
+            cnn_stats=cnn_result["summary_stats"],
+            winner=winner,
+            model_choice=req.model_choice,
+        )
+    except Exception as e:
+        comparison["comparison_insight"] = f"[AI insight unavailable: {str(e)}]"
+
+    return comparison
 
 
 @router.post("/chat", tags=["Forecasting"])

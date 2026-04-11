@@ -1,0 +1,145 @@
+.comparison-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Winner Banner ── */
+.winner-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(52, 211, 153, 0.08), rgba(52, 211, 153, 0.02));
+  border: 1px solid rgba(52, 211, 153, 0.2);
+}
+
+.winner-banner .trophy {
+  font-size: 2.2rem;
+  flex-shrink: 0;
+}
+
+.winner-banner .winner-info h3 {
+  margin: 0 0 4px 0;
+  font-size: 1.1rem;
+  color: var(--green);
+}
+
+.winner-banner .winner-info p {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* ── Metrics Grid ── */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.model-metrics-card {
+  padding: 20px;
+  border-radius: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.model-metrics-card.is-winner {
+  border-color: rgba(52, 211, 153, 0.4);
+  box-shadow: 0 0 20px rgba(52, 211, 153, 0.06);
+}
+
+.model-metrics-card .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.model-metrics-card .card-header h4 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.winner-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(52, 211, 153, 0.15);
+  color: var(--green);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.88rem;
+}
+
+.metric-row .label {
+  color: var(--text-secondary);
+}
+
+.metric-row .value {
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.metric-row .value.best {
+  color: var(--green);
+}
+
+/* ── Chart Container ── */
+.comparison-chart-container {
+  padding: 20px;
+}
+
+/* ── Loading / Running ── */
+.comparison-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.comparison-loading .pulse-icon {
+  font-size: 2.5rem;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.7; }
+}
+
+.comparison-loading p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.comparison-loading .sub {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+}

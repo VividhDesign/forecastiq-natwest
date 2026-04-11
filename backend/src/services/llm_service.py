@@ -181,3 +181,46 @@ def generate_chat_insight(
     """Answer a free-form user question grounded in the verified forecast data."""
     prompt = _build_chat_prompt(question, stats, anomaly_count, context_label)
     return _call_with_fallback(prompt, model_choice)
+
+
+def _build_comparison_prompt(classical_stats: dict, cnn_stats: dict, winner: str) -> str:
+    """Build a prompt comparing Classical vs CNN model performance."""
+    winner_name = "Classical (OLS + Fourier)" if winner == "classical" else "1D CNN (Deep Learning)"
+    return f"""You are a data science expert explaining model comparison results to a business audience.
+Two forecasting models were tested on the same dataset. Here are the results:
+
+Model A — Classical (OLS + Fourier Decomposition):
+- Forecast End Value: {classical_stats.get('forecast_end_value')}
+- Growth: {classical_stats.get('growth_pct_over_period')}%
+- MAE (Mean Absolute Error): {classical_stats.get('mae')}
+- RMSE (Root Mean Square Error): {classical_stats.get('rmse')}
+- MAPE (Mean Absolute % Error): {classical_stats.get('mape')}%
+
+Model B — 1D CNN (Deep Learning):
+- Forecast End Value: {cnn_stats.get('forecast_end_value', 'N/A')}
+- Growth: {cnn_stats.get('growth_pct_over_period', 'N/A')}%
+- MAE: {cnn_stats.get('mae', 'N/A')}
+- RMSE: {cnn_stats.get('rmse', 'N/A')}
+- MAPE: {cnn_stats.get('mape', 'N/A')}%
+
+Winner (based on lowest MAE): {winner_name}
+
+Write exactly 4 sentences:
+1. State which model performed better and by how much (compare MAE/RMSE values).
+2. Explain WHY this model performed better in simple terms (e.g., data patterns, data size, complexity).
+3. State when the other model might be the better choice (specific scenarios).
+4. Give a clear recommendation for this specific dataset.
+
+Be professional, concise, and educational. Avoid excessive jargon."""
+
+
+def generate_comparison_insight(
+    classical_stats: dict,
+    cnn_stats: dict,
+    winner: str,
+    model_choice: ModelChoice = "gemini",
+) -> str:
+    """Generate an AI insight comparing Classical vs CNN model performance."""
+    prompt = _build_comparison_prompt(classical_stats, cnn_stats, winner)
+    return _call_with_fallback(prompt, model_choice)
+

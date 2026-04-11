@@ -241,7 +241,20 @@ def run_forecast(
         for d, v in zip(future_dates, naive_yhat)
     ]
 
+    # ─── Accuracy Metrics on Holdout (for model comparison) ───
+    # Use last 20% as holdout to compute MAE, RMSE, MAPE
+    holdout_size = max(int(n_hist * 0.2), 30)
+    if holdout_size < n_hist:
+        holdout_actual = y_hist[-holdout_size:]
+        holdout_predicted = yhat_hist[-holdout_size:]
+        mae = float(np.mean(np.abs(holdout_actual - holdout_predicted)))
+        rmse = float(np.sqrt(np.mean((holdout_actual - holdout_predicted) ** 2)))
+        mape = float(np.mean(np.abs((holdout_actual - holdout_predicted) / np.clip(holdout_actual, 1, None))) * 100)
+    else:
+        mae = rmse = mape = 0.0
+
     summary_stats = {
+        "model_name": "OLS + Fourier (Classical)",
         "context_label": context_label,
         "forecast_weeks": forecast_weeks,
         "current_value": round(last_actual, 2),
@@ -258,6 +271,10 @@ def run_forecast(
         "seasonal_amplitude": seasonal_amplitude,
         "naive_forecast_end": round(float(naive_yhat[-1]), 2),
         "model_vs_naive_pct": round((forecast_end - float(naive_yhat[-1])) / max(abs(float(naive_yhat[-1])), 1) * 100, 1),
+        # Accuracy metrics (for model comparison)
+        "mae": round(mae, 2),
+        "rmse": round(rmse, 2),
+        "mape": round(mape, 2),
     }
 
     return {
@@ -266,6 +283,12 @@ def run_forecast(
         "naive_baseline": naive_records,
         "anomalies": anomaly_records,
         "summary_stats": summary_stats,
+        "accuracy_metrics": {
+            "mae": round(mae, 2),
+            "rmse": round(rmse, 2),
+            "mape": round(mape, 2),
+            "holdout_size": holdout_size,
+        },
     }
 
 
