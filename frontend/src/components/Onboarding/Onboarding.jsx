@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
 import './Onboarding.css'
 
@@ -26,6 +26,29 @@ export default function Onboarding({ onDataReady, theme, onThemeToggle }) {
   const [error, setError] = useState('')
   const [dragOver, setDragOver] = useState(false)
   const fileRef = useRef()
+
+  // ── Backend warm-up ping ────────────────────────────────────────────────────
+  // Render free tier sleeps after 15 min of inactivity. Pinging the health
+  // endpoint immediately on page load gives the server ~20-30 s to wake up
+  // before the user finishes picking settings and clicks Launch.
+  const [backendStatus, setBackendStatus] = useState('waking') // 'waking' | 'ready' | 'slow'
+  useEffect(() => {
+    let slowTimer
+    const ping = async () => {
+      try {
+        // Set a 'slow' label after 5 s so the user knows why they might wait
+        slowTimer = setTimeout(() => setBackendStatus('slow'), 5000)
+        await axios.get(`${API_BASE.replace('/api', '')}/ping`, { timeout: 60000 })
+        clearTimeout(slowTimer)
+        setBackendStatus('ready')
+      } catch {
+        clearTimeout(slowTimer)
+        setBackendStatus('ready') // allow launch even if ping fails
+      }
+    }
+    ping()
+    return () => clearTimeout(slowTimer)
+  }, [])
 
   const handleGenerate = async () => {
     setLoading(true)
@@ -91,6 +114,39 @@ export default function Onboarding({ onDataReady, theme, onThemeToggle }) {
             Upload your time-series data or generate a realistic dataset to explore short-term
             forecasts, anomaly detection, and scenario modelling.
           </p>
+
+          {/* Backend warm-up status badge */}
+          {backendStatus === 'waking' && (
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              marginTop: '12px', padding: '6px 14px', borderRadius: '20px',
+              background: 'var(--glass-bg)', border: '1px solid var(--border)',
+              fontSize: '0.78rem', color: 'var(--text-muted)'
+            }}>
+              <span className="spinner" style={{ width: '12px', height: '12px', borderWidth: '2px' }} />
+              Connecting to server…
+            </div>
+          )}
+          {backendStatus === 'slow' && (
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: '8px',
+              marginTop: '12px', padding: '6px 14px', borderRadius: '20px',
+              background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)',
+              fontSize: '0.78rem', color: 'var(--amber, #fbbf24)'
+            }}>
+              ⏳ Backend waking up (free tier cold start — takes ~30 s once, then stays fast)
+            </div>
+          )}
+          {backendStatus === 'ready' && (
+            <div style={{
+              display: 'inline-flex', alignItems: 'center', gap: '6px',
+              marginTop: '12px', padding: '6px 14px', borderRadius: '20px',
+              background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)',
+              fontSize: '0.78rem', color: 'var(--green, #22c55e)'
+            }}>
+              ✓ Server ready
+            </div>
+          )}
         </div>
 
         {/* Main Card */}
