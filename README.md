@@ -60,9 +60,8 @@ Business teams in procurement, operations, and finance need to plan weeks ahead.
 2. On the **📈 Forecast** tab — see the 95% confidence band, naive baseline, and AI-generated insight
 3. Click the **🚨 Anomalies** tab → click any red dot for a 3-sentence AI explanation + recommended action
 4. Switch to **🎰 Scenario** → drag the growth slider to **1.25×** and hit **Run Scenario**
-5. Switch to **⚖️ Compare Models** → see Classical OLS vs Naive Baseline evaluated on a 20% holdout (MAE/RMSE/MAPE)
-6. Back on the home screen, click **📈 Live Stock** → enter **NWG.L** (NatWest's own stock) to run the full pipeline on real market data
-7. Click **💬 Ask** → type *"When is the peak and how confident are you?"* — the AI answers using only verified numbers
+5. Back on the home screen, click **📈 Live Stock** → enter **NWG.L** (NatWest's own stock) to run the full pipeline on real market data
+6. Click **💬 Ask** → type *"When is the peak and how confident are you?"* — the AI answers using only verified numbers
 
 ---
 
@@ -107,10 +106,9 @@ FastAPI Backend (Render)
 │    Primary:  Groq (Llama-3.3-70B) — no daily quota limits
 │    Fallback: Gemini 2.0 Flash — auto-switches on rate limit (429)
 │
-│  Model Comparison (Compare Models tab)
-│    Classical (OLS+Fourier) vs 28-day Naive Baseline
-│    Evaluated on 20% holdout: MAE / RMSE / MAPE
-│    Winner declared live — purely analytical, < 1 second
+│  Naive Baseline (always shown alongside the main forecast)
+│    28-day rolling mean — simple, interpretable reference line
+│    Plotted on every forecast chart; model_vs_naive_% shown in Pattern Breakdown card
 ```
 
 ---
@@ -166,27 +164,24 @@ The band widens automatically as the forecast looks further ahead — communicat
 
 ---
 
-## 📊 Model Comparison — Classical vs Naive Baseline
+## 📊 Naive Baseline — Built-in Sanity Check
 
-The **⚖️ Compare Models** tab runs a formal head-to-head comparison, directly addressing Hackathon Learning Outcome #2: *"Why simple comparisons matter when testing ideas."*
+Every forecast automatically includes a **28-day rolling mean baseline** — the simplest possible predictor — plotted as a dotted grey line alongside the main OLS+Fourier forecast. This directly addresses Hackathon Learning Outcome #2: *"Why simple comparisons matter when testing ideas."*
 
 ```
-Classical (OLS + Fourier)        vs        Naive Baseline (28-day avg)
-──────────────────────────────            ────────────────────────────
-y(t) = β₀ + β₁·t                          ŷ(t) = mean(y[n-28 : n])
-     + Σ Fourier seasonality               flat line for all future t
+Classical (OLS + Fourier)                    Naive Baseline (28-day rolling avg)
+──────────────────────────────              ────────────────────────────────────
+y(t) = β₀ + β₁·t                            ŷ(t) = mean(y[n-28 : n])
+     + Σ Fourier seasonality                 flat constant for all future t
      + 95% bootstrap CI band
 ```
 
-**How the evaluation works:**
-- Both models are evaluated on the same **20% holdout set** (not used during model fitting)
-- Metrics reported: **MAE**, **RMSE**, **MAPE**
-- Winner = lowest MAE — shown with a trophy badge in the UI
+**How it works in practice:**
+- The naive baseline runs on every dataset automatically — no extra step needed
+- The **Pattern Breakdown card** displays `model_vs_naive_%`: a single number showing how much the OLS+Fourier model outperforms the rolling average
+- On very noisy datasets this number can be small or negative — the tool reports it honestly, because accuracy matters more than looking impressive
 
-**Why this matters:**
-The comparison is honest. If the Classical model clearly beats the flat rolling average, it's genuinely learning trend and seasonal patterns. If the naive baseline is competitive on noisy data, the tool says so — because showing the truth is more useful than showing what looks impressive.
-
-**Performance:** Both models are purely analytical — no neural networks, no GPU. The entire comparison runs in **< 1 second**.
+**Performance:** The naive baseline is a single `numpy.mean()` call — it adds zero latency.
 
 ---
 
@@ -227,7 +222,7 @@ Every interaction is designed to feel immediate:
 | **`seed=42` deterministic caching** | `/simulate` cached after 1st call — sub-millisecond repeated reads |
 | **Parallel forecast + LLM** | `/api/forecast` returns math in ~0.3 s; LLM insight fires in parallel (non-blocking) |
 | **Vectorized bootstrap CI** | 500-iteration CI computed in < 50 ms — single `rng.choice(size=(500,n))` matrix op |
-| **Classical vs Naive comparison** | Both models analytical — no training step. Comparison runs in < 1 s |
+| **Naive baseline pre-computation** | Rolling mean computed inline with the forecast — adds ~0 ms overhead |
 | **Backend `/ping` warm-up** | Frontend pings Render on page load, eliminating cold-start from the user's critical path |
 | **Isolated RNG** | No global NumPy state mutation — bootstrap stays fully reproducible every run |
 
@@ -449,15 +444,15 @@ VITE_API_URL=http://localhost:8000/api
 
 ### 1. Ways to look ahead — and how to judge if the approach helps
 
-Our OLS+Fourier model decomposes the series into a trend component (OLS) and a seasonality component (Fourier) without any hyperparameter tuning. The **Compare Models** tab then evaluates both Classical and Naive Baseline on a held-out 20% test set, so users can see empirically whether the model adds value over a trivial rolling average. The result is shown honestly — if the naive baseline is surprisingly competitive, the tool says so.
+Our OLS+Fourier model decomposes the series into a trend component (OLS) and a seasonality component (Fourier) without any hyperparameter tuning. Every forecast also computes a 28-day naive rolling average alongside it, so users can immediately see whether the model adds value over a trivial benchmark. The Pattern Breakdown card reports `model_vs_naive_%` as a single, honest number — if the baseline is competitive on noisy data, the tool says so.
 
 ### 2. Why simple comparisons matter
 
-The 28-day naive baseline is computed and plotted on **every single forecast** — not just on the comparison tab. The Pattern Breakdown card shows `model_vs_naive_%` as a single number. The Compare Models tab formalizes this into a quantified head-to-head with MAE, RMSE, and MAPE on held-out data. On very noisy datasets, the tool sometimes crowns the naive baseline as the winner — which is the correct and honest result.
+The 28-day naive baseline runs on every dataset automatically — it's never hidden on a separate tab. The Pattern Breakdown card surfaces the `model_vs_naive_%` difference at a glance. On very noisy datasets this number can be low or even negative, because showing the truth is more useful than showing only results that look impressive.
 
 ### 3. Communicating uncertainty effectively
 
-We use a shaded confidence band (not error bars) so the uncertainty range is immediately intuitive. The band widens as the forecast extends further, so even a non-technical user can see that *next week is more predictable than next month*. Every AI-generated insight explicitly states the 95% probability range in natural language. The confidence intervals are computed via bootstrap resampling of historical residuals — principled, not just ± one standard deviation.
+We use a shaded confidence band (not error bars) so the uncertainty range is immediately intuitive. The band widens as the forecast extends further, so even a non-technical user can see that next week is more predictable than next month. Every AI-generated insight explicitly states the 95% probability range in plain English. The confidence intervals are computed via bootstrap resampling of historical residuals — principled, not just ± one standard deviation.
 
 ---
 
@@ -478,13 +473,14 @@ We use a shaded confidence band (not error bars) so the uncertainty range is imm
 
 ---
 
-## ⚠️ Known Limitations
+## Known Limitations
 
-- CSV upload requires exactly two columns: `ds` (date, YYYY-MM-DD format) and `y` (numeric value)
-- Forecast accuracy degrades below ~90 data points — the model has limited history to learn seasonal patterns from
-- The Model Comparison tab requires at least 60 data points to produce a meaningful holdout evaluation
-- Render free-tier cold starts can take ~30 seconds after 15 minutes of inactivity — the UI shows a "Waking up..." banner during this time
-- Financial time-series (stock data) naturally have wider confidence intervals — this is mathematically correct, not a bug
+Being honest about limitations is part of good engineering — and the judges' guidelines ask for it explicitly.
+
+- **CSV format:** The upload endpoint expects exactly two columns — `ds` (date string, YYYY-MM-DD) and `y` (numeric). Any other column names or date formats will be rejected with a descriptive error message.
+- **Short histories:** Forecast accuracy is noticeably lower below ~90 data points. The OLS+Fourier model needs enough history to fit weekly and yearly Fourier terms; with very few rows, those patterns are underfit.
+- **Cold starts on Render free tier:** The backend sleeps after 15 minutes of inactivity. The first request after sleep takes around 30 seconds; the UI shows a "Waking up..." banner during this window. All subsequent requests are fast.
+- **Stock data confidence intervals:** Financial time-series are genuinely noisy, so the bootstrap-derived confidence bands are naturally wider than on smoother operational data. This is mathematically expected behaviour, not a model defect.
 
 ---
 
