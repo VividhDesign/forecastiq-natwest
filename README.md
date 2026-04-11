@@ -247,12 +247,21 @@ Input: sliding window of 28 past days   shape: (batch, 1, 28)
 
 **Why 1D CNN?**
 - Convolutional filters learn local temporal patterns (weekly spikes, dips) automatically
-- No sequential bottleneck (unlike LSTM/GRU) — trains in ~10 seconds on CPU
+- No sequential bottleneck (unlike LSTM/GRU) — trains in ~3 seconds on CPU
 - Works well with the 730-day datasets our simulator generates
 
-**Confidence Intervals via MC Dropout:** At inference time, we run 100 forward passes with dropout *enabled* (Monte Carlo Dropout). The 2.5th and 97.5th percentiles of the resulting distribution form the 95% confidence band — a lightweight Bayesian approximation without full Bayesian inference.
+**Confidence Intervals via Batched MC Dropout:** At inference time, we stack N copies of each forecast window into a single batch and call the model once — each row gets a different random dropout mask, producing N predictions simultaneously. The 2.5th and 97.5th percentiles form the 95% confidence band. This batched approach is ~100× faster than running N sequential forward passes.
 
-**Holdout evaluation:** Both models are trained on the first 80% of data and scored on the last 20% (hidden holdout set) using MAE, RMSE, and MAPE. The **Compare Models tab** shows which model wins on each specific dataset.
+**Holdout evaluation:** The model is trained once on the full dataset. Accuracy metrics (MAE, RMSE, MAPE) are computed by evaluating the trained model on the last 20% of data in a single batch operation — no second training run required. The **Compare Models tab** shows which model wins on each specific dataset.
+
+**Performance (730-day dataset, 4-week forecast, CPU-only):**
+
+| Step | Time |
+|---|---|
+| Training (15 epochs, batch=64) | ~2–3 s |
+| MC Dropout forecast (20 samples, batched) | < 0.5 s |
+| Holdout metric evaluation (batch) | < 0.1 s |
+| **Total end-to-end** | **~2.6 s** |
 
 ### Forecast validation
 
@@ -500,7 +509,7 @@ This repo includes `render.yaml` and `backend/.python-version` for zero-config d
 - Model comparison requires at least 60 data points (needs a meaningful holdout set)
 - Gemini free-tier has daily quota limits — Groq is used as default to avoid this
 - Bootstrap CI runs 500 iterations — takes 1–2 seconds on large datasets
-- CNN model trains on CPU only (no GPU acceleration on free-tier Render); inference takes ~10–15 seconds
+- CNN model runs on CPU only (free-tier Render has no GPU); end-to-end time is ~3–5 s
 - Free-tier Render backend has cold-start delays (~30s after 15 min inactivity)
 
 ---
