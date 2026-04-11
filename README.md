@@ -333,9 +333,13 @@ The `/api/forecast` endpoint returns pure mathematical results immediately (~0.3
 
 The original bootstrap used a Python for-loop over 500 iterations. Replaced with a single `rng.choice(..., size=(500, n))` matrix operation — the entire sample matrix is built in one NumPy call. The confidence band now computes in **<50ms** regardless of dataset size.
 
-### 6. Classical vs N-BEATS — same philosophy, different method
+### 6. N-BEATS background pre-training at startup
 
-Both models decompose the series into **trend + seasonality**. Classical does it analytically (OLS + Fourier equations). N-BEATS learns the same decomposition end-to-end using polynomial and Fourier basis expansions in its neural stacks. This makes the comparison conceptually clean — it's not "old vs new," it's "analytical vs learned" for the same mathematical objective. This framing is what makes the Compare Models tab genuinely educational rather than just a metrics table.
+N-BEATS (ICLR 2020) is pre-trained on a diverse synthetic corpus (60 series × 730 days) in a **daemon background thread** during server startup. This runs in ~40s while the server is already accepting requests. Once complete:
+  - Weights are held in memory (no disk I/O)
+  - Any endpoint needing N-BEATS inference loads the weights + fine-tunes for <2s instead of training from scratch (~8s)
+  - Falls back gracefully to on-demand training if the server is queried before pretrain finishes
+  - Visible at `/pretrain-status` for debugging (handy to check before a live demo)
 
 ---
 
@@ -374,10 +378,11 @@ ForecastIQ/
 │       ├── api/
 │       │   └── routes.py               # REST endpoint definitions
 │       └── services/
-│           ├── data_simulator.py       # Synthetic data (Fourier + noise)
+│           ├── data_simulator.py       # Synthetic data (Fourier + phase-randomised RNG)
 │           ├── forecasting.py          # Core model (OLS + Bootstrap CI + MAE/RMSE/MAPE)
-│           ├── nbeats_forecasting.py   # N-BEATS model (PyTorch, ICLR 2020, MC Dropout CI)
-│           └── llm_service.py          # LLM router (auto-fallback + comparison insight)
+│           ├── nbeats_forecasting.py   # N-BEATS (PyTorch, ICLR 2020, in-memory cache, MC Dropout CI)
+│           ├── nbeats_pretrain.py      # Background pretrain on 60-series corpus at server startup
+│           └── llm_service.py          # LLM router (Groq/Gemini auto-fallback, comparison insight)
 │   └── tests/
 │       └── test_forecasting.py         # 11 test assertions
 │
@@ -396,7 +401,7 @@ ForecastIQ/
             │   ├── ForecastChart.jsx    # Recharts + CI band + naive line
             │   ├── AnomalyPanel.jsx     # Anomaly table + AI explanations
             │   ├── ScenarioPlayground.jsx # What-if + remove outliers
-            │   ├── ModelComparison.jsx  # Classical vs N-BEATS side-by-side UI
+            │   ├── ModelComparison.jsx  # Classical vs Naive Baseline UI (instant, analytical)
             │   ├── ModelComparison.css  # Comparison tab styles
             │   ├── ChatPanel.jsx        # Free-form Q&A interface
             │   └── DataExplorer.jsx     # Filterable table + CSV export
@@ -487,7 +492,7 @@ Fetch real historical stock prices directly from Yahoo Finance:
 | **📈 Forecast** | Line chart with 95% CI band, naive baseline (dotted grey), and AI insight. Pattern Breakdown card shows trend slope, seasonal amplitude, model vs naive % |
 | **🚨 Anomalies** | Detected spikes and drops — click any row for a 3-sentence AI explanation with recommended next steps |
 | **🎰 Scenario** | Growth & seasonality sliders + Remove Outliers toggle. Baseline vs scenario comparison + AI summary |
-| **🧠 Compare Models** | Runs Classical (OLS+Fourier) vs **N-BEATS** (ICLR 2020) side-by-side. Shows MAE / RMSE / MAPE on a 20% holdout set, winner badge, dual forecast chart, and an AI explanation of which model is better — and why. First run trains N-BEATS (~3-5s); re-runs are instant via in-memory cache |
+| **🧠 Compare Models** | Classical (OLS+Fourier) vs **Naive Baseline** (28-day rolling average) — demonstrates LO#2: *"baseline forecasts are essential for sanity-checking any model."* Both are computed analytically in <0.5s. MAE/RMSE/MAPE on a 20% holdout set with winner badge and AI explanation |
 | **💬 Ask** | Chat Q&A — ask anything about the forecast data. 5 suggested questions for quick demos. All answers grounded in verified stats |
 | **📊 Raw Data** | Full data table with search, sort, anomaly highlights, and CSV export |
 

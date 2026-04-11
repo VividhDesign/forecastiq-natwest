@@ -25,6 +25,23 @@ app.add_middleware(
 app.include_router(router, prefix="/api")
 
 
+@app.on_event("startup")
+def startup_event():
+    """
+    Launch N-BEATS background pre-training on a synthetic corpus.
+
+    Runs in a daemon thread — all API endpoints are immediately available.
+    Pre-training takes ~40s on Render free-tier CPU; after that, N-BEATS
+    model weights are held in memory for any endpoint that needs them.
+    Check /pretrain-status to confirm completion.
+    """
+    try:
+        from src.services.nbeats_pretrain import launch_pretrain_background
+        launch_pretrain_background()
+    except Exception as exc:
+        # Non-fatal — inference will fall back to on-demand training
+        print(f"[Startup] N-BEATS pretrain could not be scheduled: {exc}", flush=True)
+
 @app.get("/", tags=["Health"])
 def health_check():
     """Health check endpoint."""
