@@ -162,28 +162,29 @@ Widens automatically to show that *next week is more predictable than next month
 
 ---
 
-## 🤖 N-BEATS — Interpretable Deep Learning (ICLR 2020)
+## 📊 Model Comparison — Classical vs Naive Baseline
 
-We include a full **N-BEATS** (Neural Basis Expansion Analysis for Interpretable Time Series, Oreshkin et al., ICLR 2020) implementation in the **Compare Models** tab. Both models share the same decomposition philosophy — the difference is *how* they learn it:
+The **Compare Models** tab runs a head-to-head comparison that directly addresses **Hackathon Learning Outcome #2: "Why simple comparisons matter when testing ideas."**
 
 ```
-Input window (28 days)
-  ↓ Trend Stack:     FC(64)×4 + ReLU → polynomial basis [1, t, t², t³]
-  ↓ Seasonality Stack: FC(64)×4 + ReLU → Fourier basis [cos/sin harmonics]
-Final forecast = Σ trend outputs + Σ seasonality outputs
+Classical (OLS + Fourier)        vs        Naive Baseline (28-day avg)
+──────────────────────────────            ────────────────────────────
+y(t) = β₀ + β₁·t                          ŷ(t) = mean(y[n-28 : n])
+     + Σ Fourier seasonality               flat line for all future t
+     + 95% bootstrap CI band
 ```
 
-**Confidence bands** via batched Monte Carlo Dropout — 20 stochastic forward passes in one batch call, 2.5th–97.5th percentile = 95% CI.
+**How evaluation works:**
+- Both models are evaluated on the same **20% holdout set** (held back from model fitting)
+- Metrics computed: **MAE**, **RMSE**, **MAPE**
+- Winner = lowest MAE — declared live in the UI with a trophy badge
 
-**Performance on CPU** (730-day dataset, 4-week forecast):
+**What this shows judges:**
+- If our Classical model clearly beats the flat rolling average → it's genuinely learning trend + seasonal patterns
+- If the naive baseline is competitive → honest signal that the data may be too noisy for meaningful forecasting
+- Either outcome is educational: the tool shows the truth, not just what looks impressive
 
-| Step | Time |
-|---|---|
-| Pre-training at startup (60 series, 5 epochs) | ~40 s (background thread) |
-| Inference on user data | ~0.5 s |
-| Model comparison head-to-head | ~2–4 s total |
-
-**Key finding:** On clean synthetic data, Classical (OLS+Fourier) often wins. On noisy stock data, N-BEATS sometimes edges ahead. The tab makes this comparison live and educational — not theoretical.
+**Performance:** Both models are purely analytical — no training, no PyTorch, no GPU. The entire comparison runs in **< 1 second** after data is loaded.
 
 ---
 
@@ -196,8 +197,7 @@ We spent significant effort making every user interaction feel immediate:
 | **`seed=42` deterministic caching** | Sandbox `/simulate` cached after 1st call — sub-millisecond repeated reads |
 | **Parallel forecast + LLM** | `/api/forecast` returns math (~0.3 s), LLM insight fires in parallel (non-blocking) |
 | **Vectorized bootstrap CI** | 500-iteration CI computed in <50 ms — single `rng.choice(size=(500,n))` matrix op |
-| **N-BEATS background pre-training** | Trained at startup in a daemon thread — Compare Models is instant when you need it |
-| **N-BEATS in-memory cache** | MD5-keyed per dataset, 30-min TTL, max 5 entries — cached runs <0.05 s |
+| **Classical vs Naive comparison** | Both models are analytical — no training, no PyTorch. Comparison runs in <1 s |
 | **Backend /ping warm-up** | Frontend pings the Render instance on page load, eliminating cold-start during demo |
 | **Isolated RNG** | No global NumPy state mutation — forecast bootstrap stays reproducible every run |
 
@@ -430,22 +430,23 @@ This eliminates the most common failure mode in AI analytics tools — hallucina
 
 ### 1. Ways to look ahead — and how to judge if the approach helps
 
-- Classical OLS+Fourier gives an analytical, fully interpretable forecast
-- N-BEATS (ICLR 2020) gives a learned decomposition for comparison
-- **Compare Models** tab runs both on the actual user dataset with MAE/RMSE/MAPE on a 20% holdout — users see empirically which approach works better for their data
+- Classical OLS+Fourier decomposes the series into trend (OLS) + seasonality (Fourier) + noise — analytically, no training required
+- **Compare Models** tab runs both Classical and Naive Baseline on the actual user dataset with MAE/RMSE/MAPE on a 20% holdout — users see empirically whether the model is adding value over a trivial rolling average
+- Forecast accuracy is shown honestly: if the model barely beats the naive baseline, the UI says so
 
 ### 2. Why simple comparisons matter
 
 - 28-day naive baseline is computed and plotted on **every** forecast — not just the comparison tab
 - `model_vs_naive_%` in the Pattern Breakdown card gives a single number: "is this model adding value over a rolling average?"
-- Classical often beats N-BEATS on clean seasonal data — the tool shows this honestly
+- The **Compare Models** tab makes this a formal, quantified head-to-head on a held-out 20% test set
+- Sometimes the naive baseline wins on very noisy data — the tool shows this honestly
 
 ### 3. Communicating uncertainty effectively
 
 - Shaded confidence band (not error bars) makes ranges intuitive
 - Band widens visually as the forecast extends further — communicating *future = less certain*
 - Every AI insight explicitly states the 95% range in natural language
-- N-BEATS uses MC Dropout (20 stochastic passes batched) for its bands — a principled Bayesian approximation
+- CI uses bootstrap resampling on historical residuals — principled, not just ± one standard deviation
 
 ---
 

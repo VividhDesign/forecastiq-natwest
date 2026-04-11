@@ -28,19 +28,12 @@ app.include_router(router, prefix="/api")
 @app.on_event("startup")
 def startup_event():
     """
-    Launch N-BEATS background pre-training on a synthetic corpus.
-
-    Runs in a daemon thread — all API endpoints are immediately available.
-    Pre-training takes ~40s on Render free-tier CPU; after that, N-BEATS
-    model weights are held in memory for any endpoint that needs them.
-    Check /pretrain-status to confirm completion.
+    Server startup hook.
+    N-BEATS pre-training removed — the /model-comparison endpoint now compares
+    Classical (OLS+Fourier) vs the 28-day Naive Baseline, both computed analytically
+    with no training step. This keeps cold-start time under 3 seconds.
     """
-    try:
-        from src.services.nbeats_pretrain import launch_pretrain_background
-        launch_pretrain_background()
-    except Exception as exc:
-        # Non-fatal — inference will fall back to on-demand training
-        print(f"[Startup] N-BEATS pretrain could not be scheduled: {exc}", flush=True)
+    print("[Startup] ForecastIQ API ready.", flush=True)
 
 @app.get("/", tags=["Health"])
 def health_check():
@@ -58,22 +51,4 @@ def ping():
     """
     return {"pong": True}
 
-
-@app.get("/pretrain-status", tags=["Health"])
-def pretrain_status():
-    """
-    Reports whether the N-BEATS background pre-training has completed.
-    Useful for debugging Render cold-starts and verifying the speedup is active.
-    """
-    try:
-        from src.services.nbeats_pretrain import is_pretrained
-        ready = is_pretrained()
-    except Exception:
-        ready = False
-    return {
-        "pretrained": ready,
-        "message": "N-BEATS pretrained weights ready — inference will be fast (~0.5 s)."
-                   if ready else
-                   "Pre-training still running (~40 s after boot). First Compare Models call will train on demand.",
-    }
 
